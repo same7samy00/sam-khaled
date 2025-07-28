@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة المنتجات</title>
+    <title>إدارة المنتجات - النظام المطور</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
@@ -56,7 +56,11 @@
             <form id="productForm">
                 <div class="form-row">
                     <div class="form-group"><label for="name">الاسم التجاري:</label><input type="text" id="name" required></div>
+                    <div class="form-group"><label for="scientificName">الاسم العلمي:</label><input type="text" id="scientificName"></div>
+                </div>
+                <div class="form-row">
                     <div class="form-group"><label for="supplier">المورد:</label><input type="text" id="supplier"></div>
+                    <div class="form-group"><label for="expiryDate">تاريخ الصلاحية:</label><input type="date" id="expiryDate" required></div>
                 </div>
                  <hr style="margin: 15px 0; border-color: #eee;">
                 <div class="form-row">
@@ -84,7 +88,11 @@
                  <hr style="margin: 15px 0; border-color: #eee;">
                 <div class="form-row">
                      <div class="form-group"><label for="stock_boxes">الكمية (عدد العلب):</label><input type="number" id="stock_boxes" required></div>
-                     <div class="form-group"><label for="expiryDate">تاريخ الصلاحية:</label><input type="date" id="expiryDate" required></div>
+                     <div class="form-group"><label for="reorderLevel">حد إعادة الطلب (بالعلبة):</label><input type="number" id="reorderLevel" value="5"></div>
+                </div>
+                <div class="form-group">
+                    <label for="notes">ملاحظات (مثال: يحتاج وصفة):</label>
+                    <input type="text" id="notes">
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">حفظ المنتج</button>
             </form>
@@ -95,7 +103,7 @@
         <div class="modal-content small">
             <span class="close-button">&times;</span>
             <h3>مسح الباركود</h3>
-            <div class="scanner-area"><video id="global-qr-video"></video></div>
+            <div class="scanner-area"><video id="global-qr-video" style="width:100%;"></video></div>
         </div>
     </div>
 
@@ -131,7 +139,7 @@
                     closeScanner();
                 }, { highlightScanRegion: true, highlightCodeOutline: true });
                 scanner.start().catch(err => {
-                    alert("فشل تشغيل الكاميرا. يرجى منح الأذونات اللازمة.");
+                    alert("فشل تشغيل الكاميرا. يرجى منح الأذونات اللازمة للموقع.");
                     console.error(err);
                     closeScanner();
                 });
@@ -143,13 +151,13 @@
                     scanner.destroy();
                     scanner = null;
                 }
-                scannerModal.style.display = 'none';
+                if(scannerModal) scannerModal.style.display = 'none';
             };
 
             document.querySelectorAll('.open-scanner-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => openScanner(e.currentTarget.dataset.targetInput));
             });
-            scannerModal.querySelector('.close-button').addEventListener('click', closeScanner);
+            if(scannerModal) scannerModal.querySelector('.close-button').addEventListener('click', closeScanner);
 
             // --- Page specific logic ---
             const productModal = document.getElementById('productModal');
@@ -181,6 +189,7 @@
                 const unitsPerBox = parseInt(productForm.unitsPerBox.value);
                 const productData = {
                     name: productForm.name.value,
+                    scientificName: productForm.scientificName.value,
                     supplier: productForm.supplier.value,
                     barcode_box: productForm.barcode_box.value,
                     barcode_strip: productForm.barcode_strip.value,
@@ -189,7 +198,9 @@
                     unitsPerBox: unitsPerBox,
                     stock_boxes: stockBoxes,
                     stock_strips: stockBoxes * unitsPerBox, // Calculated total strips
+                    reorderLevel: parseInt(productForm.reorderLevel.value),
                     expiryDate: productForm.expiryDate.value,
+                    notes: productForm.notes.value
                 };
                 try {
                     if (editingProductId) {
@@ -204,12 +215,18 @@
             db.collection('products').orderBy('name').onSnapshot(snapshot => {
                 productTableBody.innerHTML = '';
                 if(snapshot.empty) {
-                    productTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row">لا توجد منتجات.</td></tr>';
+                    productTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row">لا توجد منتجات. ابدأ بإضافة منتج جديد.</td></tr>';
                     return;
                 }
                 snapshot.forEach(doc => {
                     const p = doc.data();
                     const row = productTableBody.insertRow();
+                    
+                    const isLowStock = p.stock_boxes <= p.reorderLevel;
+                    const expiry = new Date(p.expiryDate);
+                    const isExpiring = (expiry - new Date()) / (1000 * 60 * 60 * 24) < 30; // expiring in 30 days
+                    row.style.backgroundColor = isLowStock ? '#fee2e2' : (isExpiring ? '#fef3c7' : '');
+
                     row.innerHTML = `
                         <td>${p.name}</td>
                         <td>${p.supplier || 'N/A'}</td>
@@ -232,7 +249,9 @@
                 
                 if(button.classList.contains('edit-btn')) {
                     const docSnap = await db.collection('products').doc(id).get();
-                    openModal(id, docSnap.data());
+                    if(docSnap.exists) {
+                       openModal(id, docSnap.data());
+                    }
                 } else if (button.classList.contains('delete-btn')) {
                     if(confirm('هل أنت متأكد من الحذف؟')) {
                         await db.collection('products').doc(id).delete();
