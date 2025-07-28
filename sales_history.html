@@ -41,8 +41,7 @@
                             <th>عدد الأصناف</th>
                         </tr>
                     </thead>
-                    <tbody id="salesTableBody">
-                        </tbody>
+                    <tbody id="salesTableBody"></tbody>
                 </table>
             </div>
         </main>
@@ -54,27 +53,22 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Shared Setup
             const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
             const app = firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.firestore();
 
             auth.onAuthStateChanged(user => {
-                if (user) {
-                    document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
-                } else {
-                    window.location.href = 'login.html';
-                }
+                if (user) { document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`; }
+                else { window.location.href = 'login.html'; }
             });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-            // Page Specific Logic
             const salesTableBody = document.getElementById('salesTableBody');
             
             const formatDate = (timestamp) => {
                 if (!timestamp || !timestamp.toDate) return 'N/A';
-                return timestamp.toDate().toLocaleString('ar-EG');
+                return timestamp.toDate().toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
             };
 
             db.collection('sales').orderBy('timestamp', 'desc').onSnapshot(snapshot => {

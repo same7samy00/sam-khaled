@@ -32,10 +32,9 @@
 
             <section class="pos-section" style="display: flex; gap: 20px; flex-grow: 1;">
                 <div class="pos-left-panel" style="flex: 2; background: white; padding: 20px; border-radius: 8px; display: flex; flex-direction: column;">
-                    <h3>بحث وإضافة المنتجات</h3>
-                    <div class="search-product-pos form-group" style="display: flex; gap: 10px;">
-                        <input type="text" id="posProductSearch" placeholder="ابحث باسم المنتج..." style="flex-grow: 1;">
-                        <button class="btn btn-secondary open-scanner-btn" data-target-input="posProductSearch"><i class="fas fa-barcode"></i></button>
+                    <h3>بحث عن منتج</h3>
+                    <div class="search-product-pos form-group">
+                        <input type="text" id="posProductSearch" placeholder="ابحث باسم المنتج...">
                     </div>
                     <div id="posSearchResults" style="border: 1px solid #ddd; border-radius: 8px; padding: 10px; min-height: 150px; margin-top: 15px;">
                         <p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>
@@ -52,8 +51,7 @@
                                     <th>حذف</th>
                                 </tr>
                             </thead>
-                            <tbody id="invoiceItemsBody">
-                                </tbody>
+                            <tbody id="invoiceItemsBody"></tbody>
                         </table>
                     </div>
                 </div>
@@ -77,73 +75,26 @@
             </section>
         </main>
     </div>
-    
-    <div id="globalScannerModal" class="modal">
-        <div class="modal-content">
-            <span class="close-button">&times;</span>
-            <h3>مسح الباركود</h3>
-            <div class="scanner-area">
-                <video id="global-qr-video"></video>
-            </div>
-            <button class="btn btn-primary" id="globalStartScannerBtn" style="margin-top: 15px;">ابدأ المسح</button>
-            <button class="btn btn-danger" id="globalStopScannerBtn" style="display: none; margin-top: 15px;">إيقاف</button>
-        </div>
-    </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
-
+    
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- Shared Setup ---
+        // Shared Setup
         const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
 
         auth.onAuthStateChanged(user => {
-            if (user) {
-                document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
-            } else {
-                window.location.href = 'login.html';
-            }
+            if (user) { document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`; } 
+            else { window.location.href = 'login.html'; }
         });
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-        // --- Scanner Logic ---
-        const scannerModal = document.getElementById('globalScannerModal');
-        const videoEl = document.getElementById('global-qr-video');
-        let scanner = null;
-        let targetInput = null;
-
-        const openScanner = (targetId) => {
-            targetInput = document.getElementById(targetId);
-            scannerModal.style.display = 'flex';
-        };
-        const closeScanner = () => {
-            if (scanner) {
-                scanner.stop();
-                scanner.destroy();
-                scanner = null;
-            }
-            scannerModal.style.display = 'none';
-        };
-
-        document.getElementById('globalStartScannerBtn').addEventListener('click', () => {
-            scanner = new QrScanner(videoEl, result => {
-                if(targetInput) targetInput.value = result.data;
-                targetInput.dispatchEvent(new Event('input'));
-                closeScanner();
-            }, { highlightScanRegion: true });
-            scanner.start();
-        });
-        document.getElementById('globalStopScannerBtn').addEventListener('click', closeScanner);
-        scannerModal.querySelector('.close-button').addEventListener('click', closeScanner);
-        document.querySelector('.open-scanner-btn').addEventListener('click', (e) => openScanner(e.currentTarget.dataset.targetInput));
-
-        // --- POS Logic ---
+        // POS Logic
         const searchInput = document.getElementById('posProductSearch');
         const searchResults = document.getElementById('posSearchResults');
         const invoiceItemsBody = document.getElementById('invoiceItemsBody');
@@ -179,7 +130,7 @@
         
         discountEl.addEventListener('input', calculateTotals);
 
-        invoiceItemsBody.addEventListener('change', (e) => {
+        invoiceItemsBody.addEventListener('input', (e) => {
             if(e.target.tagName === 'INPUT'){
                 const index = e.target.dataset.index;
                 invoiceItems[index].quantity = parseInt(e.target.value);
@@ -188,8 +139,9 @@
         });
         
          invoiceItemsBody.addEventListener('click', (e) => {
-            if(e.target.closest('.delete-item-btn')){
-                const index = e.target.closest('.delete-item-btn').dataset.index;
+            const btn = e.target.closest('.delete-item-btn');
+            if(btn){
+                const index = btn.dataset.index;
                 invoiceItems.splice(index, 1);
                 renderInvoice();
             }
@@ -197,36 +149,31 @@
 
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
-            const term = searchInput.value.toLowerCase();
-            if (term.length < 2) return;
+            const term = searchInput.value;
+            if (term.length < 2) {
+                searchResults.innerHTML = '<p class="no-data-row">أدخل حرفين على الأقل للبحث.</p>';
+                return;
+            };
             searchTimeout = setTimeout(async () => {
                 const snapshot = await db.collection('products').where('name', '>=', term).where('name', '<=', term + '\uf8ff').limit(5).get();
                 searchResults.innerHTML = '';
                 snapshot.forEach(doc => {
                     const product = doc.data();
-                    searchResults.innerHTML += `<div style="padding: 10px; border-bottom: 1px solid #eee; display:flex; justify-content: space-between; align-items: center;">
-                        <span>${product.name} - ${product.price.toFixed(2)}</span>
-                        <button class="btn btn-primary add-item-btn" data-id="${doc.id}" data-name="${product.name}" data-price="${product.price}"><i class="fas fa-plus"></i></button>
+                    searchResults.innerHTML += `<div style="padding: 10px; border-bottom: 1px solid #eee; display:flex; justify-content: space-between; align-items: center; cursor: pointer;" class="add-item-btn" data-id="${doc.id}" data-name="${product.name}" data-price="${product.price}">
+                        <span>${product.name} (المتاح: ${product.quantity}) - ${product.price.toFixed(2)} جنيه</span>
+                        <button class="btn btn-primary"><i class="fas fa-plus"></i></button>
                     </div>`;
                 });
             }, 300);
         });
 
         searchResults.addEventListener('click', (e) => {
-            if(e.target.closest('.add-item-btn')){
-                const btn = e.target.closest('.add-item-btn');
-                const newItem = {
-                    id: btn.dataset.id,
-                    name: btn.dataset.name,
-                    price: parseFloat(btn.dataset.price),
-                    quantity: 1,
-                };
+            const itemDiv = e.target.closest('.add-item-btn');
+            if(itemDiv){
+                const newItem = { id: itemDiv.dataset.id, name: itemDiv.dataset.name, price: parseFloat(itemDiv.dataset.price), quantity: 1 };
                 const existingItem = invoiceItems.find(item => item.id === newItem.id);
-                if (existingItem) {
-                    existingItem.quantity++;
-                } else {
-                    invoiceItems.push(newItem);
-                }
+                if (existingItem) { existingItem.quantity++; } 
+                else { invoiceItems.push(newItem); }
                 renderInvoice();
             }
         });
@@ -240,7 +187,22 @@
                 discount: parseFloat(discountEl.value) || 0,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
+            let allQuantitiesAvailable = true;
+            
+            const productChecks = invoiceItems.map(item => db.collection('products').doc(item.id).get());
+            const productDocs = await Promise.all(productChecks);
 
+            for (let i = 0; i < productDocs.length; i++) {
+                const doc = productDocs[i];
+                const item = invoiceItems[i];
+                if (!doc.exists || doc.data().quantity < item.quantity) {
+                    alert(`الكمية غير كافية للمنتج: ${item.name}. المتاح: ${doc.data().quantity || 0}`);
+                    allQuantitiesAvailable = false;
+                    break;
+                }
+            }
+            if(!allQuantitiesAvailable) return;
+            
             invoiceItems.forEach(item => {
                 const productRef = db.collection('products').doc(item.id);
                 batch.update(productRef, { quantity: firebase.firestore.FieldValue.increment(-item.quantity) });
@@ -255,9 +217,11 @@
                 invoiceItems = [];
                 renderInvoice();
                 discountEl.value = 0;
+                searchInput.value = '';
+                searchResults.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>';
             } catch (error) {
                 console.error("Sale failed: ", error);
-                alert('فشل إتمام البيع. قد تكون الكمية غير كافية.');
+                alert('فشل إتمام البيع.');
             }
         });
     });

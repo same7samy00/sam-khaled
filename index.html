@@ -29,8 +29,30 @@
                 <h2>لوحة التحكم</h2>
                 <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
+            
             <section class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
-                </section>
+                <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
+                    <div class="card-icon" style="font-size: 24px; color: var(--primary-color); margin-left: 15px;"><i class="fas fa-dollar-sign"></i></div>
+                    <div class="card-info">
+                        <h3>إجمالي مبيعات اليوم</h3>
+                        <p class="card-value" id="todaySales" style="font-size: 24px; font-weight: bold;">0.00 جنيه</p>
+                    </div>
+                </div>
+                <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
+                    <div class="card-icon" style="font-size: 24px; color: var(--primary-color); margin-left: 15px;"><i class="fas fa-file-invoice"></i></div>
+                    <div class="card-info">
+                        <h3>عدد فواتير اليوم</h3>
+                        <p class="card-value" id="todayInvoices" style="font-size: 24px; font-weight: bold;">0</p>
+                    </div>
+                </div>
+                <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
+                    <div class="card-icon" style="font-size: 24px; color: var(--error-color); margin-left: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
+                    <div class="card-info">
+                        <h3>منتجات منخفضة المخزون</h3>
+                        <p class="card-value" id="lowStockCount" style="font-size: 24px; font-weight: bold;">0</p>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -40,11 +62,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const firebaseConfig = {
-                apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg",
-                authDomain: "pharmacy-6cc74.firebaseapp.com",
-                projectId: "pharmacy-6cc74",
-            };
+            const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
             const app = firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.firestore();
@@ -57,6 +75,26 @@
                 }
             });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+            // Dashboard Logic
+            const todaySalesEl = document.getElementById('todaySales');
+            const todayInvoicesEl = document.getElementById('todayInvoices');
+            const lowStockCountEl = document.getElementById('lowStockCount');
+
+            // Today's Sales
+            const startOfDay = new Date();
+            startOfDay.setHours(0, 0, 0, 0);
+            db.collection('sales').where('timestamp', '>=', startOfDay).onSnapshot(snap => {
+                let totalSales = 0;
+                snap.forEach(doc => totalSales += doc.data().grandTotal || 0);
+                if(todaySalesEl) todaySalesEl.textContent = `${totalSales.toFixed(2)} جنيه`;
+                if(todayInvoicesEl) todayInvoicesEl.textContent = snap.size;
+            });
+
+            // Low Stock
+            db.collection('products').where('quantity', '<=', 10).onSnapshot(snap => {
+                if(lowStockCountEl) lowStockCountEl.textContent = snap.size;
+            });
         });
     </script>
 </body>

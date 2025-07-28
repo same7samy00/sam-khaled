@@ -40,8 +40,7 @@
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="productTableBody">
-                        </tbody>
+                    <tbody id="productTableBody"></tbody>
                 </table>
             </div>
         </main>
@@ -58,9 +57,8 @@
                 </div>
                 <div class="form-row">
                      <div class="form-group"><label for="productQuantity">الكمية:</label><input type="number" id="productQuantity" required></div>
-                     <div class="form-group"><label for="productUnit">الوحدة:</label><input type="text" id="productUnit"></div>
                 </div>
-                <button type="submit" class="btn btn-primary">حفظ</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">حفظ</button>
             </form>
         </div>
     </div>
@@ -72,18 +70,12 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Firebase and Auth setup
-            const firebaseConfig = {
-                apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg",
-                authDomain: "pharmacy-6cc74.firebaseapp.com",
-                projectId: "pharmacy-6cc74",
-            };
+            const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
             const app = firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.firestore();
 
-            auth.onAuthStateChanged(user => {
-                if (!user) window.location.href = 'login.html';
-            });
+            auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
             // Page specific logic
@@ -102,7 +94,6 @@
                     productForm.productName.value = data.name || '';
                     productForm.productPrice.value = data.price || '';
                     productForm.productQuantity.value = data.quantity || '';
-                    productForm.productUnit.value = data.unit || '';
                 }
                 productModal.style.display = 'flex';
             };
@@ -117,7 +108,6 @@
                     name: productForm.productName.value,
                     price: parseFloat(productForm.productPrice.value),
                     quantity: parseInt(productForm.productQuantity.value),
-                    unit: productForm.productUnit.value,
                 };
                 try {
                     if (editingProductId) {
@@ -126,9 +116,7 @@
                         await db.collection('products').add(productData);
                     }
                     closeModal();
-                } catch (error) {
-                    console.error("Error saving product:", error);
-                }
+                } catch (error) { console.error("Error saving product:", error); }
             });
 
             db.collection('products').orderBy('name').onSnapshot(snapshot => {

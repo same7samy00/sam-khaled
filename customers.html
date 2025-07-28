@@ -40,8 +40,7 @@
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="customerTableBody">
-                        </tbody>
+                    <tbody id="customerTableBody"></tbody>
                 </table>
             </div>
         </main>
@@ -57,7 +56,7 @@
                     <div class="form-group"><label for="customerPhone">رقم الهاتف:</label><input type="text" id="customerPhone"></div>
                 </div>
                 <div class="form-group"><label for="customerAddress">العنوان:</label><input type="text" id="customerAddress"></div>
-                <button type="submit" class="btn btn-primary">حفظ العميل</button>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">حفظ العميل</button>
             </form>
         </div>
     </div>
@@ -68,22 +67,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Firebase and Auth setup
             const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
             const app = firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.firestore();
 
-            auth.onAuthStateChanged(user => {
-                if (user) {
-                    document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
-                } else {
-                    window.location.href = 'login.html';
-                }
-            });
+            auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-            // Page specific logic
             const customerModal = document.getElementById('customerModal');
             const addCustomerBtn = document.getElementById('addCustomerBtn');
             const customerForm = document.getElementById('customerForm');
@@ -109,11 +100,7 @@
 
             customerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const customerData = {
-                    name: customerForm.customerName.value,
-                    phone: customerForm.customerPhone.value,
-                    address: customerForm.customerAddress.value,
-                };
+                const customerData = { name: customerForm.customerName.value, phone: customerForm.customerPhone.value, address: customerForm.customerAddress.value };
                 try {
                     if (editingCustomerId) {
                         await db.collection('customers').doc(editingCustomerId).update(customerData);
@@ -121,9 +108,7 @@
                         await db.collection('customers').add(customerData);
                     }
                     closeModal();
-                } catch (error) {
-                    console.error("Error saving customer:", error);
-                }
+                } catch (error) { console.error("Error saving customer:", error); }
             });
 
             db.collection('customers').orderBy('name').onSnapshot(snapshot => {
