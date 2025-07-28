@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الصيدلية - إدارة المنتجات</title>
+    <title>إدارة المنتجات</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
@@ -11,11 +11,8 @@
 <body>
     <div class="container">
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fas fa-pills"></i>
-                <span>نظام الصيدلية</span>
-            </div>
-            <nav class="main-nav">
+             <div class="logo"><i class="fas fa-pills"></i><span>نظام الصيدلية</span></div>
+             <nav class="main-nav">
                 <ul>
                     <li><a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
                     <li class="active"><a href="inventory.html"><i class="fas fa-box-open"></i> إدارة المنتجات</a></li>
@@ -33,147 +30,143 @@
                 <button class="btn btn-primary" id="addProductBtn"><i class="fas fa-plus"></i> إضافة منتج جديد</button>
             </header>
 
-            <section class="filters-search">
-                <div class="search-box">
-                    <input type="text" id="productSearch" placeholder="بحث باسم المنتج، الباركود، المورد، أو تاريخ الانتهاء...">
-                    <button class="btn btn-icon"><i class="fas fa-search"></i></button>
-                    <button class="btn btn-icon open-scanner-btn" data-target-input="productSearch"><i class="fas fa-barcode"></i></button>
-                </div>
-                <div class="filters">
-                    <label for="filterBy">فلترة حسب:</label>
-                    <select id="filterBy">
-                        <option value="all">جميع المنتجات</option>
-                        <option value="low-stock">منخفض المخزون</option>
-                        <option value="expiring-soon">قرب انتهاء الصلاحية</option>
-                    </select>
-                </div>
-            </section>
-
-            <section class="product-table-section">
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>الباركود</th>
-                                <th>الاسم التجاري</th>
-                                <th>السعر</th>
-                                <th>الوحدة</th>
-                                <th>الكمية</th>
-                                <th>المورد</th>
-                                <th>تاريخ الإنتاج</th>
-                                <th>تاريخ الانتهاء</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productTableBody">
-                            <tr>
-                                <td colspan="9" class="no-data-row">جارٍ تحميل المنتجات...</td>
-                            </tr>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>الاسم التجاري</th>
+                            <th>السعر</th>
+                            <th>الكمية</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productTableBody">
                         </tbody>
-                    </table>
-                </div>
-            </section>
+                </table>
+            </div>
         </main>
     </div>
 
     <div id="productModal" class="modal">
-        <div class="modal-content product-modal-content">
+        <div class="modal-content">
             <span class="close-button">&times;</span>
             <h3 id="modalTitle">إضافة منتج جديد</h3>
             <form id="productForm">
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="productName">الاسم التجاري:</label>
-                        <input type="text" id="productName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="productPrice">السعر:</label>
-                        <input type="number" id="productPrice" step="0.01" min="0" required>
-                    </div>
+                    <div class="form-group"><label for="productName">الاسم التجاري:</label><input type="text" id="productName" required></div>
+                    <div class="form-group"><label for="productPrice">السعر:</label><input type="number" id="productPrice" step="0.01" required></div>
                 </div>
                 <div class="form-row">
-                    <div class="form-group">
-                        <label for="productUnit">الوحدة:</label>
-                        <select id="productUnit" required>
-                            <option value="">اختر وحدة</option>
-                            <option value="علبة">علبة</option>
-                            <option value="شريط">شريط</option>
-                            <option value="جرام">جرام</option>
-                            <option value="كيلو جرام">كيلو جرام</option>
-                            <option value="لتر">لتر</option>
-                            <option value="متر">متر</option>
-                            <option value="قطعة">قطعة</option>
-                            <option value="كرتونة">كرتونة</option>
-                            <option value="باقة">باقة</option>
-                            <option value="مجموعة">مجموعة</option>
-                            <option value="زجاجة">زجاجة</option>
-                            <option value="وحدة">وحدة</option>
-                            <option value="حبة">حبة</option>
-                            <option value="عبوة">عبوة</option>
-                            <option value="لفافة">لفافة</option>
-                            <option value="صندوق">صندوق</option>
-                            <option value="كيس">كيس</option>
-                            <option value="لفة">لفة</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="productQuantity">الكمية:</label>
-                        <input type="number" id="productQuantity" min="0" required>
-                    </div>
+                     <div class="form-group"><label for="productQuantity">الكمية:</label><input type="number" id="productQuantity" required></div>
+                     <div class="form-group"><label for="productUnit">الوحدة:</label><input type="text" id="productUnit"></div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="productSupplier">المورد:</label>
-                        <input type="text" id="productSupplier">
-                    </div>
-                    <div class="form-group">
-                        <label for="productBarcode">الباركود:</label>
-                        <input type="text" id="productBarcode">
-                        <button type="button" class="btn btn-secondary btn-icon open-scanner-btn" data-target-input="productBarcode"><i class="fas fa-barcode"></i> مسح الباركود</button>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="productionDate">تاريخ الإنتاج:</label>
-                        <input type="date" id="productionDate">
-                    </div>
-                    <div class="form-group">
-                        <label for="expiryDate">تاريخ الانتهاء:</label>
-                        <input type="date" id="expiryDate">
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary" id="saveProductBtn">حفظ المنتج</button>
+                <button type="submit" class="btn btn-primary">حفظ</button>
             </form>
         </div>
     </div>
 
-    <div id="globalScannerModal" class="modal">
-        <div class="modal-content scanner-modal-content">
-            <span class="close-button">&times;</span>
-            <h3 id="globalScannerTitle">مسح الباركود</h3>
-            <div class="scanner-area">
-                <video id="global-qr-video" muted playsinline></video>
-                <div class="scan-overlay"></div>
-            </div>
-            <p id="global-scan-result" class="scan-result"></p>
-            <button class="btn btn-primary mt-20" id="globalStartScannerBtn"><i class="fas fa-video"></i> ابدأ المسح</button>
-            <button class="btn btn-secondary mt-10" id="globalStopScannerBtn" style="display: none;"><i class="fas fa-stop-circle"></i> إيقاف المسح</button>
-            <div class="form-group mt-20">
-                <label for="globalManualBarcodeInput">أو أدخل الباركود يدوياً:</label>
-                <input type="text" id="globalManualBarcodeInput" placeholder="أدخل الباركود هنا">
-                <button class="btn btn-primary" id="globalProcessManualBarcodeBtn"><i class="fas fa-check"></i> تطبيق</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics-compat.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Firebase and Auth setup
+            const firebaseConfig = {
+                apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg",
+                authDomain: "pharmacy-6cc74.firebaseapp.com",
+                projectId: "pharmacy-6cc74",
+            };
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
 
-    <script src="app.js"></script>
+            auth.onAuthStateChanged(user => {
+                if (!user) window.location.href = 'login.html';
+            });
+            document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+            // Page specific logic
+            const productModal = document.getElementById('productModal');
+            const addProductBtn = document.getElementById('addProductBtn');
+            const productForm = document.getElementById('productForm');
+            const productTableBody = document.getElementById('productTableBody');
+            const modalTitle = document.getElementById('modalTitle');
+            let editingProductId = null;
+
+            const openModal = (id = null, data = {}) => {
+                editingProductId = id;
+                modalTitle.textContent = id ? 'تعديل المنتج' : 'إضافة منتج جديد';
+                productForm.reset();
+                if (id) {
+                    productForm.productName.value = data.name || '';
+                    productForm.productPrice.value = data.price || '';
+                    productForm.productQuantity.value = data.quantity || '';
+                    productForm.productUnit.value = data.unit || '';
+                }
+                productModal.style.display = 'flex';
+            };
+            const closeModal = () => productModal.style.display = 'none';
+
+            addProductBtn.addEventListener('click', () => openModal());
+            productModal.querySelector('.close-button').addEventListener('click', closeModal);
+
+            productForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const productData = {
+                    name: productForm.productName.value,
+                    price: parseFloat(productForm.productPrice.value),
+                    quantity: parseInt(productForm.productQuantity.value),
+                    unit: productForm.productUnit.value,
+                };
+                try {
+                    if (editingProductId) {
+                        await db.collection('products').doc(editingProductId).update(productData);
+                    } else {
+                        await db.collection('products').add(productData);
+                    }
+                    closeModal();
+                } catch (error) {
+                    console.error("Error saving product:", error);
+                }
+            });
+
+            db.collection('products').orderBy('name').onSnapshot(snapshot => {
+                productTableBody.innerHTML = '';
+                if(snapshot.empty) {
+                    productTableBody.innerHTML = '<tr><td colspan="4" class="no-data-row">لا توجد منتجات.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const product = doc.data();
+                    const row = productTableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${product.name}</td>
+                        <td>${product.price.toFixed(2)}</td>
+                        <td>${product.quantity}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-primary edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                });
+            });
+
+            productTableBody.addEventListener('click', async (e) => {
+                const button = e.target.closest('button');
+                if(!button) return;
+                const id = button.dataset.id;
+                
+                if(button.classList.contains('edit-btn')) {
+                    const docSnap = await db.collection('products').doc(id).get();
+                    openModal(id, docSnap.data());
+                } else if (button.classList.contains('delete-btn')) {
+                    if(confirm('هل أنت متأكد من الحذف؟')) {
+                        await db.collection('products').doc(id).delete();
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

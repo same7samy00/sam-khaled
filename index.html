@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -11,10 +11,7 @@
 <body>
     <div class="container">
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fas fa-pills"></i>
-                <span>نظام الصيدلية</span>
-            </div>
+            <div class="logo"><i class="fas fa-pills"></i><span>نظام الصيدلية</span></div>
             <nav class="main-nav">
                 <ul>
                     <li class="active"><a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
@@ -30,79 +27,37 @@
         <main class="main-content">
             <header class="main-header">
                 <h2>لوحة التحكم</h2>
-                <div class="user-info">
-                    <span>مرحباً، المستخدم!</span>
-                    <i class="fas fa-user-circle"></i>
-                </div>
+                <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
-
-            <section class="dashboard-cards">
-                <div class="card">
-                    <div class="card-icon"><i class="fas fa-dollar-sign"></i></div>
-                    <div class="card-info">
-                        <h3>إجمالي مبيعات اليوم</h3>
-                        <p class="card-value" id="todaySales">0.00 جنيه</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
-                    <div class="card-info">
-                        <h3>عدد فواتير اليوم</h3>
-                        <p class="card-value" id="todayInvoices">0</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
-                    <div class="card-info">
-                        <h3>منتجات منخفضة المخزون</h3>
-                        <p class="card-value" id="lowStockCount">0</p>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-icon"><i class="fas fa-hourglass-end"></i></div>
-                    <div class="card-info">
-                        <h3>منتجات قرب انتهاء الصلاحية</h3>
-                        <p class="card-value" id="expiringCount">0</p>
-                    </div>
-                </div>
-            </section>
-
-            <section class="dashboard-charts">
-                <h3>أداء المبيعات (آخر 7 أيام)</h3>
-                <div class="chart-container">
-                    <canvas id="salesChart"></canvas>
-                </div>
-            </section>
+            <section class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+                </section>
         </main>
-    </div>
-
-    <div id="globalScannerModal" class="modal">
-        <div class="modal-content scanner-modal-content">
-            <span class="close-button">&times;</span>
-            <h3 id="globalScannerTitle">مسح الباركود</h3>
-            <div class="scanner-area">
-                <video id="global-qr-video" muted playsinline></video>
-                <div class="scan-overlay"></div>
-            </div>
-            <p id="global-scan-result" class="scan-result"></p>
-            <button class="btn btn-primary mt-20" id="globalStartScannerBtn"><i class="fas fa-video"></i> ابدأ المسح</button>
-            <button class="btn btn-secondary mt-10" id="globalStopScannerBtn" style="display: none;"><i class="fas fa-stop-circle"></i> إيقاف المسح</button>
-            <div class="form-group mt-20">
-                <label for="globalManualBarcodeInput">أو أدخل الباركود يدوياً:</label>
-                <input type="text" id="globalManualBarcodeInput" placeholder="أدخل الباركود هنا">
-                <button class="btn btn-primary" id="globalProcessManualBarcodeBtn"><i class="fas fa-check"></i> تطبيق</button>
-            </div>
-        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics-compat.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const firebaseConfig = {
+                apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg",
+                authDomain: "pharmacy-6cc74.firebaseapp.com",
+                projectId: "pharmacy-6cc74",
+            };
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
 
-    <script src="app.js"></script>
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+            document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+        });
+    </script>
 </body>
 </html>

@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الصيدلية - نقطة البيع</title>
+    <title>نقطة البيع</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
@@ -11,10 +11,7 @@
 <body>
     <div class="container">
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fas fa-pills"></i>
-                <span>نظام الصيدلية</span>
-            </div>
+            <div class="logo"><i class="fas fa-pills"></i><span>نظام الصيدلية</span></div>
             <nav class="main-nav">
                 <ul>
                     <li><a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
@@ -27,34 +24,28 @@
             </nav>
         </aside>
 
-        <main class="main-content">
+        <main class="main-content" style="display: flex; flex-direction: column;">
             <header class="main-header">
                 <h2>نقطة البيع والفاتورة</h2>
-                <div class="user-info">
-                    <span>مرحباً، المستخدم!</span>
-                    <i class="fas fa-user-circle"></i>
-                </div>
+                <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
 
-            <section class="pos-section">
-                <div class="pos-left-panel">
+            <section class="pos-section" style="display: flex; gap: 20px; flex-grow: 1;">
+                <div class="pos-left-panel" style="flex: 2; background: white; padding: 20px; border-radius: 8px; display: flex; flex-direction: column;">
                     <h3>بحث وإضافة المنتجات</h3>
-                    <div class="search-product-pos form-group">
-                        <input type="text" id="posProductSearch" placeholder="ابحث باسم المنتج أو الباركود...">
-                        <button class="btn btn-primary btn-icon open-scanner-btn" data-target-input="posProductSearch"><i class="fas fa-barcode"></i> مسح</button>
+                    <div class="search-product-pos form-group" style="display: flex; gap: 10px;">
+                        <input type="text" id="posProductSearch" placeholder="ابحث باسم المنتج..." style="flex-grow: 1;">
+                        <button class="btn btn-secondary open-scanner-btn" data-target-input="posProductSearch"><i class="fas fa-barcode"></i></button>
                     </div>
-
-                    <div class="product-selection-results" id="posSearchResults">
+                    <div id="posSearchResults" style="border: 1px solid #ddd; border-radius: 8px; padding: 10px; min-height: 150px; margin-top: 15px;">
                         <p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>
                     </div>
-
-                    <h3 class="mt-30">عناصر الفاتورة</h3>
-                    <div class="invoice-items-table table-responsive">
+                    <h3 style="margin-top: 30px;">عناصر الفاتورة</h3>
+                    <div class="invoice-items-table table-responsive" style="flex-grow: 1;">
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th>المنتج</th>
-                                    <th>الوحدة</th>
                                     <th>الكمية</th>
                                     <th>السعر</th>
                                     <th>الإجمالي</th>
@@ -62,86 +53,214 @@
                                 </tr>
                             </thead>
                             <tbody id="invoiceItemsBody">
-                                <tr>
-                                    <td colspan="6" class="no-data-row">لم يتم إضافة أي منتجات بعد.</td>
-                                </tr>
-                            </tbody>
+                                </tbody>
                         </table>
                     </div>
                 </div>
 
-                <div class="pos-right-panel">
+                <div class="pos-right-panel" style="flex: 1; background: white; padding: 20px; border-radius: 8px;">
                     <h3>ملخص الفاتورة</h3>
                     <div class="invoice-summary">
-                        <p>رقم الفاتورة: <span id="invoiceNumber">#00001</span></p>
-                        <p>إجمالي الفاتورة: <span id="subTotal">0.00</span> جنيه</p>
+                        <p style="display: flex; justify-content: space-between;">الإجمالي الفرعي: <span id="subTotal">0.00</span></p>
                         <div class="form-group">
-                            <label for="discount">الخصم (% أو مبلغ):</label>
-                            <input type="number" id="discount" step="0.01" min="0" value="0">
+                            <label for="discount">الخصم (مبلغ):</label>
+                            <input type="number" id="discount" value="0" step="0.01" style="text-align: left; direction: ltr;">
                         </div>
-                        <div class="form-group">
-                            <label for="tax">الضريبة (%):</label>
-                            <input type="number" id="tax" step="0.01" min="0" value="0">
-                        </div>
-                        <p class="total-amount">المبلغ المستحق: <span id="grandTotal">0.00</span> جنيه</p>
+                        <p style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
+                            المبلغ المستحق: <span id="grandTotal" style="color: var(--primary-color);">0.00</span>
+                        </p>
                     </div>
-
-                    <h3 class="mt-20">خيارات الدفع</h3>
-                    <div class="payment-options">
-                        <div class="form-group">
-                            <label for="paymentType">نوع الدفع:</label>
-                            <select id="paymentType">
-                                <option value="cash">نقدي</option>
-                                <option value="credit">آجل (دين)</option>
-                                <option value="partial">جزئي</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="paidAmountGroup" style="display: none;">
-                            <label for="paidAmount">المبلغ المدفوع:</label>
-                            <input type="number" id="paidAmount" step="0.01" min="0" value="0">
-                        </div>
-                        <div class="form-group" id="customerSelectGroup">
-                            <label for="customerSelect">ربط الفاتورة بعميل:</label>
-                            <select id="customerSelect">
-                                <option value="">اختر عميل (اختياري)</option>
-                                </select>
-                        </div>
-                    </div>
-
-                    <button class="btn btn-primary btn-lg mt-20" id="completeSaleBtn"><i class="fas fa-check-circle"></i> إتمام البيع</button>
-                    <button class="btn btn-secondary btn-lg mt-10" id="printInvoiceBtn"><i class="fas fa-print"></i> طباعة/حفظ الفاتورة</button>
+                    <button class="btn btn-primary" id="completeSaleBtn" style="width: 100%; padding: 15px; font-size: 18px; margin-top: 20px;">
+                        <i class="fas fa-check-circle"></i> إتمام البيع
+                    </button>
                 </div>
             </section>
         </main>
     </div>
-
+    
     <div id="globalScannerModal" class="modal">
-        <div class="modal-content scanner-modal-content">
+        <div class="modal-content">
             <span class="close-button">&times;</span>
-            <h3 id="globalScannerTitle">مسح الباركود</h3>
+            <h3>مسح الباركود</h3>
             <div class="scanner-area">
-                <video id="global-qr-video" muted playsinline></video>
-                <div class="scan-overlay"></div>
+                <video id="global-qr-video"></video>
             </div>
-            <p id="global-scan-result" class="scan-result"></p>
-            <button class="btn btn-primary mt-20" id="globalStartScannerBtn"><i class="fas fa-video"></i> ابدأ المسح</button>
-            <button class="btn btn-secondary mt-10" id="globalStopScannerBtn" style="display: none;"><i class="fas fa-stop-circle"></i> إيقاف المسح</button>
-            <div class="form-group mt-20">
-                <label for="globalManualBarcodeInput">أو أدخل الباركود يدوياً:</label>
-                <input type="text" id="globalManualBarcodeInput" placeholder="أدخل الباركود هنا">
-                <button class="btn btn-primary" id="globalProcessManualBarcodeBtn"><i class="fas fa-check"></i> تطبيق</button>
-            </div>
+            <button class="btn btn-primary" id="globalStartScannerBtn" style="margin-top: 15px;">ابدأ المسح</button>
+            <button class="btn btn-danger" id="globalStopScannerBtn" style="display: none; margin-top: 15px;">إيقاف</button>
         </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics-compat.js"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
 
-    <script src="app.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Shared Setup ---
+        const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+        document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+        // --- Scanner Logic ---
+        const scannerModal = document.getElementById('globalScannerModal');
+        const videoEl = document.getElementById('global-qr-video');
+        let scanner = null;
+        let targetInput = null;
+
+        const openScanner = (targetId) => {
+            targetInput = document.getElementById(targetId);
+            scannerModal.style.display = 'flex';
+        };
+        const closeScanner = () => {
+            if (scanner) {
+                scanner.stop();
+                scanner.destroy();
+                scanner = null;
+            }
+            scannerModal.style.display = 'none';
+        };
+
+        document.getElementById('globalStartScannerBtn').addEventListener('click', () => {
+            scanner = new QrScanner(videoEl, result => {
+                if(targetInput) targetInput.value = result.data;
+                targetInput.dispatchEvent(new Event('input'));
+                closeScanner();
+            }, { highlightScanRegion: true });
+            scanner.start();
+        });
+        document.getElementById('globalStopScannerBtn').addEventListener('click', closeScanner);
+        scannerModal.querySelector('.close-button').addEventListener('click', closeScanner);
+        document.querySelector('.open-scanner-btn').addEventListener('click', (e) => openScanner(e.currentTarget.dataset.targetInput));
+
+        // --- POS Logic ---
+        const searchInput = document.getElementById('posProductSearch');
+        const searchResults = document.getElementById('posSearchResults');
+        const invoiceItemsBody = document.getElementById('invoiceItemsBody');
+        const subTotalEl = document.getElementById('subTotal');
+        const discountEl = document.getElementById('discount');
+        const grandTotalEl = document.getElementById('grandTotal');
+        const completeSaleBtn = document.getElementById('completeSaleBtn');
+        
+        let invoiceItems = [];
+        let searchTimeout;
+
+        const renderInvoice = () => {
+            invoiceItemsBody.innerHTML = '';
+            invoiceItems.forEach((item, index) => {
+                const row = invoiceItemsBody.insertRow();
+                row.innerHTML = `
+                    <td>${item.name}</td>
+                    <td><input type="number" value="${item.quantity}" min="1" data-index="${index}" style="width: 60px;"></td>
+                    <td>${item.price.toFixed(2)}</td>
+                    <td>${(item.price * item.quantity).toFixed(2)}</td>
+                    <td><button class="btn btn-danger delete-item-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
+                `;
+            });
+            calculateTotals();
+        };
+
+        const calculateTotals = () => {
+            const subTotal = invoiceItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const discount = parseFloat(discountEl.value) || 0;
+            subTotalEl.textContent = subTotal.toFixed(2);
+            grandTotalEl.textContent = (subTotal - discount).toFixed(2);
+        };
+        
+        discountEl.addEventListener('input', calculateTotals);
+
+        invoiceItemsBody.addEventListener('change', (e) => {
+            if(e.target.tagName === 'INPUT'){
+                const index = e.target.dataset.index;
+                invoiceItems[index].quantity = parseInt(e.target.value);
+                renderInvoice();
+            }
+        });
+        
+         invoiceItemsBody.addEventListener('click', (e) => {
+            if(e.target.closest('.delete-item-btn')){
+                const index = e.target.closest('.delete-item-btn').dataset.index;
+                invoiceItems.splice(index, 1);
+                renderInvoice();
+            }
+        });
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            const term = searchInput.value.toLowerCase();
+            if (term.length < 2) return;
+            searchTimeout = setTimeout(async () => {
+                const snapshot = await db.collection('products').where('name', '>=', term).where('name', '<=', term + '\uf8ff').limit(5).get();
+                searchResults.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const product = doc.data();
+                    searchResults.innerHTML += `<div style="padding: 10px; border-bottom: 1px solid #eee; display:flex; justify-content: space-between; align-items: center;">
+                        <span>${product.name} - ${product.price.toFixed(2)}</span>
+                        <button class="btn btn-primary add-item-btn" data-id="${doc.id}" data-name="${product.name}" data-price="${product.price}"><i class="fas fa-plus"></i></button>
+                    </div>`;
+                });
+            }, 300);
+        });
+
+        searchResults.addEventListener('click', (e) => {
+            if(e.target.closest('.add-item-btn')){
+                const btn = e.target.closest('.add-item-btn');
+                const newItem = {
+                    id: btn.dataset.id,
+                    name: btn.dataset.name,
+                    price: parseFloat(btn.dataset.price),
+                    quantity: 1,
+                };
+                const existingItem = invoiceItems.find(item => item.id === newItem.id);
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    invoiceItems.push(newItem);
+                }
+                renderInvoice();
+            }
+        });
+
+        completeSaleBtn.addEventListener('click', async () => {
+            if(invoiceItems.length === 0) return alert('الفاتورة فارغة!');
+            const batch = db.batch();
+            const saleData = {
+                items: invoiceItems,
+                grandTotal: parseFloat(grandTotalEl.textContent),
+                discount: parseFloat(discountEl.value) || 0,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            invoiceItems.forEach(item => {
+                const productRef = db.collection('products').doc(item.id);
+                batch.update(productRef, { quantity: firebase.firestore.FieldValue.increment(-item.quantity) });
+            });
+
+            const saleRef = db.collection('sales').doc();
+            batch.set(saleRef, saleData);
+
+            try {
+                await batch.commit();
+                alert('تم البيع بنجاح!');
+                invoiceItems = [];
+                renderInvoice();
+                discountEl.value = 0;
+            } catch (error) {
+                console.error("Sale failed: ", error);
+                alert('فشل إتمام البيع. قد تكون الكمية غير كافية.');
+            }
+        });
+    });
+    </script>
 </body>
 </html>

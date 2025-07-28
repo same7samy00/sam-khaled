@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الصيدلية - إدارة العملاء</title>
+    <title>إدارة العملاء</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
@@ -11,10 +11,7 @@
 <body>
     <div class="container">
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fas fa-pills"></i>
-                <span>نظام الصيدلية</span>
-            </div>
+            <div class="logo"><i class="fas fa-pills"></i><span>نظام الصيدلية</span></div>
             <nav class="main-nav">
                 <ul>
                     <li><a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
@@ -33,146 +30,138 @@
                 <button class="btn btn-primary" id="addCustomerBtn"><i class="fas fa-user-plus"></i> إضافة عميل جديد</button>
             </header>
 
-            <section class="filters-search">
-                <div class="search-box">
-                    <input type="text" id="customerSearch" placeholder="بحث باسم العميل، رقم الموبايل، أو التاريخ...">
-                    <button class="btn btn-icon"><i class="fas fa-search"></i></button>
-                </div>
-                <div class="filters">
-                    <label for="filterCustomersBy">فلترة حسب:</label>
-                    <select id="filterCustomersBy">
-                        <option value="all">جميع العملاء</option>
-                        <option value="highest-debt">الأعلى دينًا</option>
-                        <option value="most-frequent">الأكثر تكرارًا</option>
-                        <option value="no-contact">بدون تواصل لفترة</option>
-                    </select>
-                </div>
-            </section>
-
-            <section class="customer-table-section">
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>الاسم</th>
-                                <th>رقم الموبايل</th>
-                                <th>العنوان</th>
-                                <th>الرصيد الحالي (ديون)</th>
-                                <th>عدد الفواتير</th>
-                                <th>آخر معاملة</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="customerTableBody">
-                            <tr>
-                                <td colspan="7" class="no-data-row">لا توجد بيانات عملاء لعرضها.</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <div id="customerModal" class="modal">
-        <div class="modal-content customer-modal-content">
-            <span class="close-button">&times;</span>
-            <h3 id="customerModalTitle">إضافة عميل جديد</h3>
-            <form id="customerForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="customerName">الاسم:</label>
-                        <input type="text" id="customerName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="customerPhone">رقم الموبايل:</label>
-                        <input type="tel" id="customerPhone">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label for="customerAddress">العنوان:</label>
-                        <input type="text" id="customerAddress">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label for="customerNotes">ملاحظات:</label>
-                        <textarea id="customerNotes" rows="3"></textarea>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-primary" id="saveCustomerBtn">حفظ العميل</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="payDebtModal" class="modal">
-        <div class="modal-content small-modal-content">
-            <span class="close-button">&times;</span>
-            <h3>سداد دين العميل: <span id="debtCustomerName"></span></h3>
-            <form id="payDebtForm">
-                <div class="form-group">
-                    <label for="debtAmountToPay">المبلغ المراد سداده:</label>
-                    <input type="number" id="debtAmountToPay" step="0.01" min="0" required>
-                    <p class="current-debt-info">الرصيد الحالي: <span id="currentCustomerDebt">0.00</span> جنيه</p>
-                </div>
-                <button type="submit" class="btn btn-primary">تأكيد السداد</button>
-            </form>
-        </div>
-    </div>
-
-
-    <div id="customerInvoicesModal" class="modal">
-        <div class="modal-content large-modal-content">
-            <span class="close-button">&times;</span>
-            <h3>سجل فواتير العميل: <span id="invoicesCustomerName"></span></h3>
             <div class="table-responsive">
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>رقم الفاتورة</th>
-                            <th>التاريخ</th>
-                            <th>الإجمالي</th>
-                            <th>تفاصيل</th>
+                            <th>الاسم</th>
+                            <th>الهاتف</th>
+                            <th>العنوان</th>
+                            <th>الإجراءات</th>
                         </tr>
                     </thead>
-                    <tbody id="customerInvoicesBody">
-                        <tr>
-                            <td colspan="4" class="no-data-row">لا توجد فواتير لهذا العميل.</td>
-                        </tr>
-                    </tbody>
+                    <tbody id="customerTableBody">
+                        </tbody>
                 </table>
             </div>
-        </div>
+        </main>
     </div>
 
-    <div id="globalScannerModal" class="modal">
-        <div class="modal-content scanner-modal-content">
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
             <span class="close-button">&times;</span>
-            <h3 id="globalScannerTitle">مسح الباركود</h3>
-            <div class="scanner-area">
-                <video id="global-qr-video" muted playsinline></video>
-                <div class="scan-overlay"></div>
-            </div>
-            <p id="global-scan-result" class="scan-result"></p>
-            <button class="btn btn-primary mt-20" id="globalStartScannerBtn"><i class="fas fa-video"></i> ابدأ المسح</button>
-            <button class="btn btn-secondary mt-10" id="globalStopScannerBtn" style="display: none;"><i class="fas fa-stop-circle"></i> إيقاف المسح</button>
-            <div class="form-group mt-20">
-                <label for="globalManualBarcodeInput">أو أدخل الباركود يدوياً:</label>
-                <input type="text" id="globalManualBarcodeInput" placeholder="أدخل الباركود هنا">
-                <button class="btn btn-primary" id="globalProcessManualBarcodeBtn"><i class="fas fa-check"></i> تطبيق</button>
-            </div>
+            <h3 id="modalTitle">إضافة عميل جديد</h3>
+            <form id="customerForm">
+                <div class="form-row">
+                    <div class="form-group"><label for="customerName">اسم العميل:</label><input type="text" id="customerName" required></div>
+                    <div class="form-group"><label for="customerPhone">رقم الهاتف:</label><input type="text" id="customerPhone"></div>
+                </div>
+                <div class="form-group"><label for="customerAddress">العنوان:</label><input type="text" id="customerAddress"></div>
+                <button type="submit" class="btn btn-primary">حفظ العميل</button>
+            </form>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics-compat.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Firebase and Auth setup
+            const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
 
-    <script src="app.js"></script>
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+            document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+            // Page specific logic
+            const customerModal = document.getElementById('customerModal');
+            const addCustomerBtn = document.getElementById('addCustomerBtn');
+            const customerForm = document.getElementById('customerForm');
+            const customerTableBody = document.getElementById('customerTableBody');
+            const modalTitle = document.getElementById('modalTitle');
+            let editingCustomerId = null;
+
+            const openModal = (id = null, data = {}) => {
+                editingCustomerId = id;
+                modalTitle.textContent = id ? 'تعديل بيانات العميل' : 'إضافة عميل جديد';
+                customerForm.reset();
+                if (id) {
+                    customerForm.customerName.value = data.name || '';
+                    customerForm.customerPhone.value = data.phone || '';
+                    customerForm.customerAddress.value = data.address || '';
+                }
+                customerModal.style.display = 'flex';
+            };
+            const closeModal = () => customerModal.style.display = 'none';
+
+            addCustomerBtn.addEventListener('click', () => openModal());
+            customerModal.querySelector('.close-button').addEventListener('click', closeModal);
+
+            customerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const customerData = {
+                    name: customerForm.customerName.value,
+                    phone: customerForm.customerPhone.value,
+                    address: customerForm.customerAddress.value,
+                };
+                try {
+                    if (editingCustomerId) {
+                        await db.collection('customers').doc(editingCustomerId).update(customerData);
+                    } else {
+                        await db.collection('customers').add(customerData);
+                    }
+                    closeModal();
+                } catch (error) {
+                    console.error("Error saving customer:", error);
+                }
+            });
+
+            db.collection('customers').orderBy('name').onSnapshot(snapshot => {
+                customerTableBody.innerHTML = '';
+                if(snapshot.empty) {
+                    customerTableBody.innerHTML = '<tr><td colspan="4" class="no-data-row">لا يوجد عملاء.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const customer = doc.data();
+                    const row = customerTableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${customer.name}</td>
+                        <td>${customer.phone || 'N/A'}</td>
+                        <td>${customer.address || 'N/A'}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-primary edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                });
+            });
+
+            customerTableBody.addEventListener('click', async (e) => {
+                const button = e.target.closest('button');
+                if(!button) return;
+                const id = button.dataset.id;
+                
+                if(button.classList.contains('edit-btn')) {
+                    const docSnap = await db.collection('customers').doc(id).get();
+                    openModal(id, docSnap.data());
+                } else if (button.classList.contains('delete-btn')) {
+                    if(confirm('هل أنت متأكد من الحذف؟')) {
+                        await db.collection('customers').doc(id).delete();
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>

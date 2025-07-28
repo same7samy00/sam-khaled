@@ -1,12 +1,12 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام إدارة الصيدلية - تسجيل الدخول</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
 </head>
 <body class="login-body">
     <div class="login-container">
@@ -18,7 +18,7 @@
             <h2>تسجيل الدخول</h2>
             <form id="loginForm">
                 <div class="form-group">
-                    <label for="username">اسم المستخدم (البريد الإلكتروني):</label>
+                    <label for="username">البريد الإلكتروني:</label>
                     <input type="email" id="username" required>
                 </div>
                 <div class="form-group">
@@ -31,33 +31,48 @@
         </div>
     </div>
 
-    <div id="globalScannerModal" class="modal">
-        <div class="modal-content scanner-modal-content">
-            <span class="close-button">&times;</span>
-            <h3 id="globalScannerTitle">مسح الباركود</h3>
-            <div class="scanner-area">
-                <video id="global-qr-video" muted playsinline></video>
-                <div class="scan-overlay"></div>
-            </div>
-            <p id="global-scan-result" class="scan-result"></p>
-            <button class="btn btn-primary mt-20" id="globalStartScannerBtn"><i class="fas fa-video"></i> ابدأ المسح</button>
-            <button class="btn btn-secondary mt-10" id="globalStopScannerBtn" style="display: none;"><i class="fas fa-stop-circle"></i> إيقاف المسح</button>
-            <div class="form-group mt-20">
-                <label for="globalManualBarcodeInput">أو أدخل الباركود يدوياً:</label>
-                <input type="text" id="globalManualBarcodeInput" placeholder="أدخل الباركود هنا">
-                <button class="btn btn-primary" id="globalProcessManualBarcodeBtn"><i class="fas fa-check"></i> تطبيق</button>
-            </div>
-        </div>
-    </div>
-
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics-compat.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Firebase Configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg",
+                authDomain: "pharmacy-6cc74.firebaseapp.com",
+                projectId: "pharmacy-6cc74",
+                storageBucket: "pharmacy-6cc74.firebasestorage.app",
+                messagingSenderId: "1754889135",
+                appId: "1:1754889135:web:f678d7b103b62dbde68d5a"
+            };
 
-    <script src="app.js"></script>
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+
+            // 2. Auth State and Redirection
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    window.location.href = 'index.html';
+                }
+            });
+
+            // 3. Login Form Logic
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const email = loginForm['username'].value;
+                    const password = loginForm['password'].value;
+                    const loginMessage = document.getElementById('loginMessage');
+                    try {
+                        await auth.signInWithEmailAndPassword(email, password);
+                    } catch (error) {
+                        loginMessage.textContent = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+                        loginMessage.style.display = 'block';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

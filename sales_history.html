@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة الصيدلية - سجل المبيعات</title>
+    <title>سجل المبيعات</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
@@ -11,10 +11,7 @@
 <body>
     <div class="container">
         <aside class="sidebar">
-            <div class="logo">
-                <i class="fas fa-pills"></i>
-                <span>نظام الصيدلية</span>
-            </div>
+            <div class="logo"><i class="fas fa-pills"></i><span>نظام الصيدلية</span></div>
             <nav class="main-nav">
                 <ul>
                     <li><a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
@@ -29,106 +26,76 @@
 
         <main class="main-content">
             <header class="main-header">
-                <h2>سجل المبيعات والتقارير</h2>
-                <div class="user-info">
-                    <span>مرحباً، المستخدم!</span>
-                    <i class="fas fa-user-circle"></i>
-                </div>
+                <h2>سجل المبيعات</h2>
+                <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
 
-            <section class="filters-search">
-                <div class="search-box">
-                    <input type="text" id="invoiceSearch" placeholder="بحث برقم الفاتورة، اسم العميل، أو الباركود...">
-                    <button class="btn btn-icon"><i class="fas fa-search"></i></button>
-                </div>
-                <div class="filters">
-                    <label for="filterSalesFromDate">من تاريخ:</label>
-                    <input type="date" id="filterSalesFromDate">
-                    <label for="filterSalesToDate">إلى تاريخ:</label>
-                    <input type="date" id="filterSalesToDate">
-                    <button class="btn btn-secondary"><i class="fas fa-filter"></i> فلترة</button>
-                </div>
-            </section>
-
-            <section class="sales-table-section">
-                <div class="table-responsive">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>رقم الفاتورة</th>
-                                <th>التاريخ والوقت</th>
-                                <th>العميل</th>
-                                <th>إجمالي الفاتورة</th>
-                                <th>نوع الدفع</th>
-                                <th>الحالة</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="salesTableBody">
-                            <tr>
-                                <td colspan="7" class="no-data-row">لا توجد فواتير مبيعات لعرضها.</td>
-                            </tr>
+            <div class="table-responsive">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>رقم الفاتورة</th>
+                            <th>التاريخ</th>
+                            <th>الإجمالي</th>
+                            <th>الخصم</th>
+                            <th>عدد الأصناف</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTableBody">
                         </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section class="sales-reports-section mt-30">
-                <h3>تقارير المبيعات اليومية</h3>
-                <div class="dashboard-cards">
-                    <div class="card">
-                        <div class="card-icon"><i class="fas fa-calendar-day"></i></div>
-                        <div class="card-info">
-                            <h3>إجمالي مبيعات اليوم</h3>
-                            <p class="card-value" id="reportTodaySales">0.00 جنيه</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-icon"><i class="fas fa-receipt"></i></div>
-                        <div class="card-info">
-                            <h3>عدد فواتير اليوم</h3>
-                            <p class="card-value" id="reportTodayInvoices">0</p>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-icon"><i class="fas fa-chart-line"></i></div>
-                        <div class="card-info">
-                            <h3>الأكثر مبيعًا اليوم</h3>
-                            <p class="card-value" id="reportTopSelling">لا يوجد</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
+                </table>
+            </div>
         </main>
-    </div>
-
-    <div id="globalScannerModal" class="modal">
-        <div class="modal-content scanner-modal-content">
-            <span class="close-button">&times;</span>
-            <h3 id="globalScannerTitle">مسح الباركود</h3>
-            <div class="scanner-area">
-                <video id="global-qr-video" muted playsinline></video>
-                <div class="scan-overlay"></div>
-            </div>
-            <p id="global-scan-result" class="scan-result"></p>
-            <button class="btn btn-primary mt-20" id="globalStartScannerBtn"><i class="fas fa-video"></i> ابدأ المسح</button>
-            <button class="btn btn-secondary mt-10" id="globalStopScannerBtn" style="display: none;"><i class="fas fa-stop-circle"></i> إيقاف المسح</button>
-            <div class="form-group mt-20">
-                <label for="globalManualBarcodeInput">أو أدخل الباركود يدوياً:</label>
-                <input type="text" id="globalManualBarcodeInput" placeholder="أدخل الباركود هنا">
-                <button class="btn btn-primary" id="globalProcessManualBarcodeBtn"><i class="fas fa-check"></i> تطبيق</button>
-            </div>
-        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics-compat.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Shared Setup
+            const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
+            const app = firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
 
-    <script src="app.js"></script>
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
+                } else {
+                    window.location.href = 'login.html';
+                }
+            });
+            document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
+
+            // Page Specific Logic
+            const salesTableBody = document.getElementById('salesTableBody');
+            
+            const formatDate = (timestamp) => {
+                if (!timestamp || !timestamp.toDate) return 'N/A';
+                return timestamp.toDate().toLocaleString('ar-EG');
+            };
+
+            db.collection('sales').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+                salesTableBody.innerHTML = '';
+                if(snapshot.empty) {
+                    salesTableBody.innerHTML = '<tr><td colspan="5" class="no-data-row">لا يوجد مبيعات مسجلة.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const sale = doc.data();
+                    const row = salesTableBody.insertRow();
+                    row.innerHTML = `
+                        <td>${doc.id}</td>
+                        <td>${formatDate(sale.timestamp)}</td>
+                        <td>${sale.grandTotal.toFixed(2)}</td>
+                        <td>${(sale.discount || 0).toFixed(2)}</td>
+                        <td>${sale.items.length}</td>
+                    `;
+                });
+            });
+        });
+    </script>
 </body>
 </html>
