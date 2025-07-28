@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الصيدلية - نقطة البيع</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-pills"></i>
+                <span>نظام الصيدلية</span>
+            </div>
+            <nav class="main-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
+                    <li><a href="inventory.html"><i class="fas fa-box-open"></i> إدارة المنتجات</a></li>
+                    <li class="active"><a href="pos.html"><i class="fas fa-cash-register"></i> نقطة البيع</a></li>
+                    <li><a href="sales_history.html"><i class="fas fa-history"></i> سجل المبيعات</a></li>
+                    <li><a href="customers.html"><i class="fas fa-users"></i> إدارة العملاء</a></li>
+                    <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <header class="main-header">
+                <h2>نقطة البيع والفاتورة</h2>
+                <div class="user-info">
+                    <span>مرحباً، المستخدم!</span>
+                    <i class="fas fa-user-circle"></i>
+                </div>
+            </header>
+
+            <section class="pos-section">
+                <div class="pos-left-panel">
+                    <h3>بحث وإضافة المنتجات</h3>
+                    <div class="search-product-pos form-group">
+                        <input type="text" id="posProductSearch" placeholder="ابحث باسم المنتج أو الباركود...">
+                        <button class="btn btn-primary btn-icon open-scanner-btn" data-target-input="posProductSearch"><i class="fas fa-barcode"></i> مسح</button>
+                    </div>
+
+                    <div class="product-selection-results" id="posSearchResults">
+                        <p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>
+                    </div>
+
+                    <h3 class="mt-30">عناصر الفاتورة</h3>
+                    <div class="invoice-items-table table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>المنتج</th>
+                                    <th>الوحدة</th>
+                                    <th>الكمية</th>
+                                    <th>السعر</th>
+                                    <th>الإجمالي</th>
+                                    <th>حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoiceItemsBody">
+                                <tr>
+                                    <td colspan="6" class="no-data-row">لم يتم إضافة أي منتجات بعد.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="pos-right-panel">
+                    <h3>ملخص الفاتورة</h3>
+                    <div class="invoice-summary">
+                        <p>رقم الفاتورة: <span id="invoiceNumber">#00001</span></p>
+                        <p>إجمالي الفاتورة: <span id="subTotal">0.00</span> جنيه</p>
+                        <div class="form-group">
+                            <label for="discount">الخصم (% أو مبلغ):</label>
+                            <input type="number" id="discount" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="tax">الضريبة (%):</label>
+                            <input type="number" id="tax" step="0.01" min="0" value="0">
+                        </div>
+                        <p class="total-amount">المبلغ المستحق: <span id="grandTotal">0.00</span> جنيه</p>
+                    </div>
+
+                    <h3 class="mt-20">خيارات الدفع</h3>
+                    <div class="payment-options">
+                        <div class="form-group">
+                            <label for="paymentType">نوع الدفع:</label>
+                            <select id="paymentType">
+                                <option value="cash">نقدي</option>
+                                <option value="credit">آجل (دين)</option>
+                                <option value="partial">جزئي</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="paidAmountGroup" style="display: none;">
+                            <label for="paidAmount">المبلغ المدفوع:</label>
+                            <input type="number" id="paidAmount" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="form-group" id="customerSelectGroup">
+                            <label for="customerSelect">ربط الفاتورة بعميل:</label>
+                            <select id="customerSelect">
+                                <option value="">اختر عميل (اختياري)</option>
+                                </select>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary btn-lg mt-20" id="completeSaleBtn"><i class="fas fa-check-circle"></i> إتمام البيع</button>
+                    <button class="btn btn-secondary btn-lg mt-10" id="printInvoiceBtn"><i class="fas fa-print"></i> طباعة/حفظ الفاتورة</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="globalScannerModal" class="modal">
+        <div class="modal-content scanner-modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="globalScannerTitle">مسح الباركود</h3>
+            <div class="scanner-area">
+                <video id="global-qr-video" muted playsinline></video>
+                <div class="scan-overlay"></div>
+            </div>
+            <p id="global-scan-result" class="scan-result"></p>
+            <button class="btn btn-primary mt-20" id="globalStartScannerBtn"><i class="fas fa-video"></i> ابدأ المسح</button>
+            <button class="btn btn-secondary mt-10" id="globalStopScannerBtn" style="display: none;"><i class="fas fa-stop-circle"></i> إيقاف المسح</button>
+            <div class="form-group mt-20">
+                <label for="globalManualBarcodeInput">أو أدخل الباركود يدوياً:</label>
+                <input type="text" id="globalManualBarcodeInput" placeholder="أدخل الباركود هنا">
+                <button class="btn btn-primary" id="globalProcessManualBarcodeBtn"><i class="fas fa-check"></i> تطبيق</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-analytics.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.0/qr-scanner.min.js"></script>
+
+    <script src="app.js"></script>
+</body>
+</html>

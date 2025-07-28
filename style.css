@@ -1,0 +1,854 @@
+/* style.css - تصميم موحد كليًا وجذاب */
+
+/* --- 0. المتغيرات الأساسية (Root Variables) --- */
+:root {
+    --primary-color: #3498db; /* أزرق فاتح */
+    --secondary-color: #2c3e50; /* أزرق داكن/أسود للنصوص والخلفيات الداكنة */
+    --background-color: #ecf0f1; /* رمادي فاتح للخلفية العامة */
+    --card-background: #ffffff; /* أبيض للبطاقات والخلفيات الرئيسية */
+    --text-color-dark: #2c3e50; /* لون نص داكن */
+    --text-color-light: #7f8c8d; /* لون نص خفيف/رمادي */
+    --error-color: #e74c3c; /* أحمر للرسائل الخطأ */
+    --success-color: #27ae60; /* أخضر للرسائل الناجحة */
+    --border-color: #ddd; /* لون الحدود الخفيفة */
+    --border-radius: 8px; /* حواف مستديرة */
+    --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.08); /* ظل خفيف */
+    --shadow-medium: 0 4px 10px rgba(0, 0, 0, 0.12); /* ظل متوسط */
+}
+
+/* --- 1. الأنماط العامة (General Styles) --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color-dark);
+    direction: rtl; /* اتجاه من اليمين لليسار للعربية */
+    text-align: right; /* محاذاة النص الافتراضية */
+    font-size: 13px; /* حجم الخط العام صغير قليلاً */
+    line-height: 1.6;
+}
+
+/* لضمان أقصى تغطية للمساحة، خاصة في الشاشات الكبيرة */
+html, body {
+    height: 100%;
+}
+
+/* --- 2. أنماط تسجيل الدخول (Login Page Styles) --- */
+.login-body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--primary-color); /* خلفية صفحة الدخول باللون الأساسي */
+}
+
+.login-container {
+    width: 100%;
+    max-width: 380px; /* عرض صندوق الدخول */
+    padding: 20px;
+}
+
+.login-box {
+    background-color: var(--card-background);
+    padding: 35px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-medium);
+    text-align: center;
+}
+
+.login-box .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
+.login-box .logo i {
+    margin-left: 12px;
+    color: var(--primary-color);
+    font-size: 36px; /* أيقونة أكبر قليلاً */
+}
+
+.login-box h2 {
+    margin-bottom: 25px;
+    color: var(--secondary-color);
+    font-size: 22px;
+}
+
+/* --- 3. أنماط النموذج (Form Group Styles - Used in Login & Modals & other pages) --- */
+.form-group {
+    margin-bottom: 18px;
+    text-align: right;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-color-dark);
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"],
+.form-group input[type="email"],
+.form-group input[type="number"],
+.form-group input[type="date"],
+.form-group input[type="tel"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: var(--card-background); /* خلفية بيضاء للحقول */
+    color: var(--text-color-dark);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2); /* ظل أزرق خفيف عند التركيز */
+}
+
+/* لترتيب الحقول في صفين داخل المودال */
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px; /* مسافة أقل بين الصفوف */
+}
+.form-row .form-group {
+    flex: 1; /* جعل مجموعات النموذج تأخذ مساحة متساوية */
+    margin-bottom: 0; /* إزالة الهامش السفلي الافتراضي */
+}
+.form-row .form-group.full-width {
+    flex: 0 0 100%; /* حقل يأخذ العرض الكامل داخل الصف */
+}
+
+
+/* --- 4. أنماط الأزرار (Button Styles) --- */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-family: 'Cairo', sans-serif;
+    font-weight: 700;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    font-size: 14px; /* حجم خط زر متناسق */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* مسافة بين النص والأيقونة */
+    text-decoration: none; /* لإزالة خطوط الروابط */
+    white-space: nowrap; /* منع التفاف النص في الأزرار */
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9; /* أزرق داكن قليلاً */
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-light);
+}
+
+.btn-secondary {
+    background-color: #95a5a6; /* رمادي */
+    color: #fff;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d; /* رمادي أغمق */
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-light);
+}
+
+.btn-danger {
+    background-color: var(--error-color);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-light);
+}
+
+.btn-icon i {
+    font-size: 16px; /* حجم أيقونات الأزرار */
+}
+
+.login-btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    font-size: 16px;
+}
+
+.error-message {
+    color: var(--error-color);
+    margin-top: 15px;
+    font-size: 13px;
+    font-weight: 600;
+}
+.success-message {
+    color: var(--success-color);
+    margin-top: 15px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* --- 5. أنماط تخطيط التطبيق الرئيسي (Main App Layout) --- */
+.container {
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--background-color);
+    border-radius: var(--border-radius); /* حواف مستديرة للمستوعب الرئيسي */
+    overflow: hidden; /* مهم لضمان ظهور الحواف المستديرة بشكل صحيح */
+    box-shadow: var(--shadow-medium); /* ظل على المستوعب الكلي */
+}
+
+/* الشريط الجانبي (Sidebar) */
+.sidebar {
+    width: 240px; /* عرض الشريط الجانبي */
+    background-color: var(--secondary-color);
+    color: #fff;
+    padding: 20px 0; /* padding عمودي فقط */
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0; /* يمنع انكماش الشريط الجانبي */
+}
+
+.sidebar .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 35px;
+    font-size: 26px;
+    font-weight: 700;
+    padding: 0 15px; /* padding أفقي للشعار */
+}
+
+.sidebar .logo i {
+    margin-left: 10px;
+    color: var(--primary-color);
+    font-size: 32px;
+}
+
+.sidebar .main-nav ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar .main-nav ul li {
+    margin-bottom: 5px; /* مسافة أقل بين عناصر القائمة */
+}
+
+.sidebar .main-nav ul li a {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px; /* padding لعناصر القائمة */
+    color: #fff;
+    text-decoration: none;
+    border-radius: var(--border-radius);
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: 14px;
+}
+
+.sidebar .main-nav ul li a i {
+    margin-left: 10px;
+    font-size: 17px;
+}
+
+.sidebar .main-nav ul li a:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* خلفية شفافة عند التحويم */
+}
+.sidebar .main-nav ul li.active a {
+    background-color: var(--primary-color);
+    box-shadow: var(--shadow-light); /* ظل خفيف للعنصر النشط */
+}
+.sidebar .main-nav ul li.active a:hover {
+    background-color: #2980b9; /* أزرق داكن قليلاً عند التحويم على النشط */
+}
+
+
+/* المحتوى الرئيسي (Main Content Area) */
+.main-content {
+    flex-grow: 1;
+    padding: 25px 30px; /* padding للمحتوى الرئيسي */
+    background-color: var(--background-color);
+}
+
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color); /* فاصل خفيف */
+}
+
+.main-header h2 {
+    font-size: 24px;
+    color: var(--text-color-dark);
+    font-weight: 700;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    color: var(--text-color-light);
+}
+
+.user-info i {
+    margin-right: 8px;
+    color: var(--primary-color);
+    font-size: 18px;
+}
+
+/* --- 6. أنماط لوحة التحكم (Dashboard Cards) --- */
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* تخطيط شبكي مرن للبطاقات */
+    gap: 18px; /* مسافة بين البطاقات */
+    margin-bottom: 30px;
+}
+
+.card {
+    background-color: var(--card-background);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    display: flex;
+    align-items: center;
+}
+
+.card-icon {
+    background-color: var(--primary-color);
+    color: #fff;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 26px;
+    margin-left: 15px;
+    flex-shrink: 0; /* منع الأيقونة من الانكماش */
+}
+
+.card-info h3 {
+    font-size: 15px;
+    color: var(--text-color-light);
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+.card-info .card-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-color-dark);
+}
+
+/* --- 7. أنماط المخططات (Charts) --- */
+.dashboard-charts h3 {
+    margin-bottom: 15px;
+    color: var(--text-color-dark);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.chart-container {
+    background-color: var(--card-background);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    height: 320px; /* ارتفاع ثابت للمخطط */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+/* --- 8. أنماط فلاتر البحث والجداول (Filters, Search & Tables) --- */
+.filters-search {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.search-box {
+    display: flex;
+    flex-grow: 1;
+    max-width: 500px; /* عرض أقصى لخانة البحث */
+}
+
+.search-box input {
+    flex-grow: 1;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    outline: none;
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    transition: border-color 0.3s ease;
+}
+
+.search-box input:focus {
+    border-color: var(--primary-color);
+}
+
+.search-box .btn-icon {
+    margin-right: 8px; /* مسافة بين حقل البحث والأزرار */
+    padding: 8px 12px; /* تعديل padding ليتناسق مع حقل البحث */
+}
+.search-box .btn-icon:last-child {
+    margin-right: 0;
+}
+
+
+.filters {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.filters label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-color-dark);
+}
+
+.filters select {
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    outline: none;
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    min-width: 140px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    padding: 15px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    text-align: right;
+    white-space: nowrap; /* منع التفاف النصوص في الخلايا */
+    font-size: 13px; /* حجم خط الجدول */
+}
+
+.data-table th {
+    background-color: var(--primary-color);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    text-align: right; /* محاذاة رؤوس الأعمدة */
+}
+/* حواف مستديرة لرؤوس الجدول */
+.data-table thead tr:first-child th:first-child { border-top-right-radius: var(--border-radius); }
+.data-table thead tr:first-child th:last-child { border-top-left-radius: var(--border-radius); }
+
+
+.data-table tbody tr:hover {
+    background-color: #f8f8f8;
+}
+
+.data-table .actions-cell .btn {
+    margin-left: 6px; /* مسافة أصغر بين أزرار الإجراءات */
+    padding: 6px 10px; /* padding أصغر لأزرار الإجراءات */
+    font-size: 13px;
+}
+.data-table .actions-cell .btn i {
+    font-size: 14px;
+}
+
+.no-data-row {
+    text-align: center;
+    color: var(--text-color-light);
+    font-style: italic;
+    padding: 20px !important;
+}
+
+/* --- 9. أنماط المودال (Modal Styles) --- */
+.modal {
+    display: none; /* مخفي افتراضياً - **هذا هو الإعداد الصحيح والمهم** */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7); /* خلفية داكنة لتظليل ما خلف المودال (أكثر قتامة) */
+    justify-content: center; /* يتم تفعيله فقط عندما يكون display:flex بواسطة JS */
+    align-items: center; /* يتم تفعيله فقط عندما يكون display:flex بواسطة JS */
+    padding: 15px;
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    padding: 35px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-medium);
+    position: relative;
+    width: 90%; /* افتراضياً تأخذ 90% من العرض */
+    max-width: 700px; /* أقصى عرض معقول لمعظم المودالات */
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* أحجام محددة للمودالات حسب الحاجة */
+.modal-content.product-modal-content {
+    max-width: 900px; /* مودال المنتجات يحتاج عرضاً أكبر */
+}
+.modal-content.customer-modal-content {
+    max-width: 700px; /* مودال العملاء */
+}
+.modal-content.small-modal-content { /* للمودالات الصغيرة مثل سداد دين */
+    max-width: 450px;
+}
+.modal-content.large-modal-content { /* للمودالات الكبيرة مثل فواتير العميل */
+    max-width: 950px;
+}
+.modal-content.scanner-modal-content { /* مودال الماسح */
+    max-width: 600px;
+    text-align: center;
+}
+
+
+.modal-content .close-button {
+    color: #aaa;
+    position: absolute;
+    top: 12px;
+    left: 18px; /* موقع زر الإغلاق لجهة اليسار */
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.modal-content .close-button:hover,
+.modal-content .close-button:focus {
+    color: var(--secondary-color);
+    text-decoration: none;
+}
+
+.modal-content h3 {
+    margin-bottom: 25px;
+    color: var(--text-color-dark);
+    font-size: 20px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.modal-content .btn-primary {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    margin-top: 25px;
+}
+
+.modal-content .btn-secondary.btn-icon {
+    width: auto; /* يجعل الزر ياخذ عرضه الطبيعي */
+    margin-top: 8px; /* مسافة أسفل حقل الباركود */
+}
+
+/* --- 10. أنماط نقطة البيع (POS Specific Styles) --- */
+.pos-section {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap; /* للسماح بالتفاف العناصر على الشاشات الصغيرة */
+}
+
+.pos-left-panel, .pos-right-panel {
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light);
+    padding: 20px;
+    display: flex; /* استخدام flexbox لتنظيم المحتوى داخليا */
+    flex-direction: column;
+}
+
+.pos-left-panel {
+    flex: 2; /* تأخذ مساحة أكبر */
+    min-width: 300px; /* الحد الأدنى للعرض */
+}
+
+.pos-right-panel {
+    flex: 1; /* تأخذ مساحة أقل */
+    min-width: 280px; /* الحد الأدنى للعرض */
+}
+
+.pos-left-panel h3, .pos-right-panel h3 {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: var(--secondary-color);
+}
+
+.search-product-pos {
+    display: flex;
+    gap: 10px;
+}
+.search-product-pos input {
+    flex-grow: 1;
+}
+
+.product-selection-results {
+    margin-top: 20px;
+    max-height: 200px; /* ارتفاع ثابت لنتائج البحث */
+    overflow-y: auto; /* scroll */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 10px;
+    flex-grow: 1; /* لتأخذ المساحة المتبقية */
+}
+
+.product-item-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid #eee;
+}
+.product-item-result:last-child {
+    border-bottom: none;
+}
+.product-item-result span {
+    font-weight: 600;
+}
+.product-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.product-item-controls input, .product-item-controls select {
+    padding: 5px 8px;
+    font-size: 13px;
+    max-width: 80px;
+}
+.add-to-cart-btn {
+    padding: 5px 10px;
+    font-size: 13px;
+}
+.btn-sm { /* Small button style for table actions */
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.invoice-items-table {
+    margin-top: 20px;
+    flex-grow: 1; /* لتأخذ المساحة المتبقية */
+}
+
+.invoice-summary p {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 15px;
+}
+.invoice-summary .total-amount {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-top: 15px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 10px;
+}
+
+.payment-options .form-group {
+    margin-bottom: 15px;
+}
+.mt-10 { margin-top: 10px !important; }
+.mt-20 { margin-top: 20px !important; }
+.mt-30 { margin-top: 30px !important; }
+
+/* --- 11. أنماط الماسح الضوئي (Scanner Specific Styles) --- */
+.scanner-area {
+    position: relative;
+    width: 100%;
+    max-width: 500px; /* أقصى عرض لمنطقة الماسح */
+    margin: 0 auto;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    aspect-ratio: 16/9; /* نسبة عرض إلى ارتفاع قياسية للفيديو */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #000;
+}
+
+.scanner-area video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* تغطية المساحة دون تشويه */
+    display: block;
+}
+
+.scan-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.5); /* لجعل ما حول منطقة المسح مظللاً */
+    border: 2px dashed #fff; /* حدود منطقة المسح */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.scan-result {
+    margin-top: 15px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--success-color);
+    min-height: 20px; /* للحفاظ على المساحة حتى لو لا يوجد نتيجة */
+}
+
+/* --- 12. استجابة التصميم (Responsive Design) --- */
+@media (max-width: 768px) {
+    body {
+        font-size: 12px; /* تصغير الخطوط أكثر للشاشات الصغيرة */
+    }
+    .sidebar {
+        width: 70px; /* تصغير الشريط الجانبي كثيراً */
+        padding: 15px 0;
+    }
+    .sidebar .logo span {
+        display: none; /* إخفاء نص الشعار */
+    }
+    .sidebar .logo i {
+        margin: 0; /* توسيط الأيقونة */
+        font-size: 28px;
+    }
+    .sidebar .main-nav ul li a {
+        justify-content: center;
+        padding: 10px 5px; /* padding أقل لعناصر القائمة */
+    }
+    .sidebar .main-nav ul li a span {
+        display: none; /* إخفاء نص عناصر القائمة */
+    }
+    .sidebar .main-nav ul li a i {
+        margin: 0; /* توسيط الأيقونة */
+        font-size: 16px;
+    }
+
+    .main-content {
+        padding: 15px; /* تقليل padding للمحتوى الرئيسي */
+    }
+    .main-header {
+        flex-direction: column;
+        align-items: flex-end;
+        margin-bottom: 20px;
+    }
+    .main-header h2 {
+        font-size: 22px;
+        margin-bottom: 10px;
+    }
+    .user-info {
+        font-size: 13px;
+    }
+
+    .dashboard-cards {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); /* تعديل أعمدة البطاقات */
+        gap: 15px;
+    }
+    .card-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 22px;
+        margin-left: 10px;
+    }
+    .card-info h3 {
+        font-size: 14px;
+    }
+    .card-info .card-value {
+        font-size: 20px;
+    }
+
+    .filters-search {
+        flex-direction: column;
+        align-items: stretch; /* لجعل العناصر تأخذ العرض الكامل */
+    }
+    .search-box {
+        max-width: none;
+        width: 100%;
+    }
+    .filters {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .data-table th, .data-table td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    .data-table .actions-cell .btn {
+        padding: 5px 8px;
+        font-size: 12px;
+    }
+
+    .modal-content {
+        padding: 25px;
+        width: 95%;
+    }
+    .modal-content h3 {
+        font-size: 18px;
+    }
+    .modal-content label {
+        font-size: 13px;
+    }
+    .modal-content input, .modal-content select, .modal-content .btn {
+        font-size: 14px;
+        padding: 10px;
+    }
+    .pos-section {
+        flex-direction: column; /* جعل اللوحات تتكدس عمودياً */
+    }
+    .pos-left-panel, .pos-right-panel {
+        min-width: unset; /* إزالة الحد الأدنى للعرض */
+        width: 100%; /* تأخذ العرض الكامل */
+    }
+    .scanner-area {
+        max-width: 90%; /* عرض الماسح على الشاشات الصغيرة */
+    }
+    .form-row {
+        flex-direction: column; /* تكديس الحقول عمودياً على الشاشات الصغيرة */
+        gap: 0;
+    }
+    .form-row .form-group {
+        margin-bottom: 15px; /* إعادة الهامش السفلي */
+    }
+}
