@@ -1,1335 +1,691 @@
-// app.js
+// app.js - نسخة محسنة ومتكاملة
 
-// ----------------------------------------------------------------------
-// 1. تهيئة Firebase - **تم تصحيح طريقة الاستيراد النهائية**
-// ----------------------------------------------------------------------
-// عند استخدام Firebase SDK v9+ في متصفح عادي (بدون bundler مثل Webpack/Rollup)،
-// يجب تحميل ملفات الـ SDK الأساسية في HTML كـ "نصوص برمجية عادية"
-// ثم الوصول إلى الخدمات عبر الكائنات العامة التي يقوم Firebase بتعريفها.
-// هذا يحل مشكلة "Uncaught SyntaxError: Unexpected token 'export'".
+// الانتظار حتى يتم تحميل محتوى الصفحة بالكامل قبل تشغيل أي كود
+document.addEventListener('DOMContentLoaded', () => {
 
-// لا يوجد أي `import` هنا لـ Firebase أو QrScanner.
-// يتم الوصول إليها عبر الكائنات العامة `firebase` و `QrScanner`.
+    // ----------------------------------------------------------------------
+    // 1. تهيئة Firebase
+    // ----------------------------------------------------------------------
+    const firebaseConfig = {
+        apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg",
+        authDomain: "pharmacy-6cc74.firebaseapp.com",
+        projectId: "pharmacy-6cc74",
+        storageBucket: "pharmacy-6cc74.firebasestorage.app",
+        messagingSenderId: "1754889135",
+        appId: "1:1754889135:web:f678d7b103b62dbde68d5a",
+        measurementId: "G-N937J7C5KC"
+    };
 
-// بيانات تهيئة مشروع Firebase الخاص بك (التي قدمتها)
-const firebaseConfig = {
-    apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", // <--- استبدل هذا
-    authDomain: "pharmacy-6cc74.firebaseapp.com", // <--- استبدل هذا
-    projectId: "pharmacy-6cc74", // <--- استبدل هذا
-    storageBucket: "pharmacy-6cc74.firebasestorage.app", // <--- استبدل هذا
-    messagingSenderId: "1754889135", // <--- استبدل هذا
-    appId: "1:1754889135:web:f678d7b103b62dbde68d5a", // <--- استبدل هذا
-    measurementId: "G-N937J7C5KC" // <--- استبدل هذا
-};
+    // تهيئة Firebase والوصول للخدمات
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const analytics = firebase.analytics();
 
-// تهيئة Firebase والحصول على الخدمات من الكائن العام 'firebase'
-// يجب أن يكون 'firebase' متاحًا عالميًا بعد تحميل السكربتات في HTML.
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth(); // الوصول إلى المصادقة
-const db = firebase.firestore(); // الوصول إلى Firestore
-const analytics = firebase.analytics(); // الوصول إلى التحليلات
-
-// ----------------------------------------------------------------------
-// 2. دوال المساعدة العامة (Utils Functions)
-// ----------------------------------------------------------------------
-
-function showMessage(elementId, message, isError = true) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.textContent = message;
-        element.style.color = isError ? 'var(--error-color)' : 'var(--success-color)';
-        setTimeout(() => {
-            element.textContent = '';
-        }, 5000);
-    }
-}
-
-function redirectTo(page) {
-    window.location.href = page;
-}
-
-function formatArabicDate(dateString) {
-    if (!dateString) return 'N/A';
-    try {
-        const [year, month, day] = dateString.split('-');
-        return `${day}/${month}/${year}`;
-    } catch (e) {
-        console.error("Error formatting date:", e);
-        return dateString;
-    }
-}
-
-function getTodayDateFormatted() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-// ----------------------------------------------------------------------
-// 3. منطق الماسح الضوئي العام (Global Barcode Scanner Logic) - تم تحسينه
-// ----------------------------------------------------------------------
-
-const globalScannerModal = document.getElementById('globalScannerModal');
-const globalQrVideo = document.getElementById('global-qr-video');
-const globalScanResult = document.getElementById('global-scan-result');
-const globalStartScannerBtn = document.getElementById('globalStartScannerBtn');
-const globalStopScannerBtn = document.getElementById('globalStopScannerBtn');
-const globalManualBarcodeInput = document.getElementById('globalManualBarcodeInput');
-const globalProcessManualBarcodeBtn = document.getElementById('globalProcessManualBarcodeBtn');
-const globalScannerCloseBtn = globalScannerModal ? globalScannerModal.querySelector('.close-button') : null;
-
-let globalQrScanner = null;
-let targetInputForBarcode = null; // لتحديد حقل الإدخال الذي يجب وضع الباركود فيه
-
-// دالة لفتح الماسح الضوئي العام
-function openGlobalScanner(targetInputId = null) {
-    globalScannerModal.style.display = 'flex'; // إظهار المودال
-    targetInputForBarcode = targetInputId; // حفظ ID الحقل المستهدف
-
-    globalScanResult.textContent = 'يرجى النقر على "ابدأ المسح"';
-    globalManualBarcodeInput.value = ''; // مسح الحقل اليدوي
-
-    if (globalQrScanner) {
-        globalQrScanner.stop(); // التأكد من إيقافه قبل البدء
-        globalQrScanner.destroy(); // تدمير الماسح السابق لتجنب مشاكل الكاميرا
-        globalQrScanner = null; // إعادة تعيينه لإنشاء جديد
-    }
-
-    globalStartScannerBtn.style.display = 'inline-block';
-    globalStopScannerBtn.style.display = 'none';
-}
-
-// دالة لإغلاق الماسح الضوئي العام
-function closeGlobalScanner() {
-    globalScannerModal.style.display = 'none'; // إخفاء المودال
-    if (globalQrScanner) {
-        globalQrScanner.stop();
-        globalQrScanner.destroy(); // تحرير موارد الكاميرا
-        globalQrScanner = null;
-    }
-    targetInputForBarcode = null; // مسح الحقل المستهدف
-    globalScanResult.textContent = ''; // مسح نتيجة المسح
-}
-
-// تهيئة الماسح الضوئي عند بدء التشغيل
-if (globalScannerModal) {
-    // مستمع لزر الإغلاق في المودال العام
-    if (globalScannerCloseBtn) {
-        globalScannerCloseBtn.addEventListener('click', closeGlobalScanner);
-    }
-
-    // إغلاق المودال عند النقر خارج المحتوى
-    window.addEventListener('click', (event) => {
-        if (event.target === globalScannerModal) {
-            closeGlobalScanner();
+    // ----------------------------------------------------------------------
+    // 2. دوال المساعدة العامة (Utils)
+    // ----------------------------------------------------------------------
+    const showMessage = (elementId, message, isError = true) => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.textContent = message;
+            element.style.display = 'block';
+            element.className = isError ? 'error-message' : 'success-message';
+            setTimeout(() => {
+                element.style.display = 'none';
+                element.textContent = '';
+            }, 5000);
         }
-    });
+    };
 
-    // بدء الماسح الضوئي
-    if (globalStartScannerBtn) {
+    const redirectTo = (page) => {
+        window.location.href = page;
+    };
+
+    const formatArabicDate = (date) => {
+        if (!date) return 'غير متوفر';
+        // التأكد من أن المدخل هو كائن Date
+        if (!(date instanceof Date)) {
+            // محاولة تحويله إذا كان timestamp من Firestore
+            if (date && typeof date.toDate === 'function') {
+                date = date.toDate();
+            } else {
+                return 'تاريخ غير صالح';
+            }
+        }
+        return new Intl.DateTimeFormat('ar-EG', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(date);
+    };
+    
+    const getTodayDateFormatted = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    };
+
+
+    // ----------------------------------------------------------------------
+    // 3. منطق الماسح الضوئي العام (Global Scanner)
+    // ----------------------------------------------------------------------
+    const globalScannerModal = document.getElementById('globalScannerModal');
+    if (globalScannerModal) {
+        const globalQrVideo = document.getElementById('global-qr-video');
+        const globalScanResult = document.getElementById('global-scan-result');
+        const globalStartScannerBtn = document.getElementById('globalStartScannerBtn');
+        const globalStopScannerBtn = document.getElementById('globalStopScannerBtn');
+        const globalManualBarcodeInput = document.getElementById('globalManualBarcodeInput');
+        const globalProcessManualBarcodeBtn = document.getElementById('globalProcessManualBarcodeBtn');
+        const globalScannerCloseBtn = globalScannerModal.querySelector('.close-button');
+
+        let globalQrScanner = null;
+        let targetInputForBarcode = null;
+
+        const openGlobalScanner = (targetInputId) => {
+            targetInputForBarcode = document.getElementById(targetInputId);
+            globalScanResult.textContent = 'انقر على "ابدأ المسح" لتفعيل الكاميرا.';
+            globalManualBarcodeInput.value = '';
+            globalScannerModal.style.display = 'flex';
+            globalStartScannerBtn.style.display = 'inline-flex';
+            globalStopScannerBtn.style.display = 'none';
+        };
+
+        const closeGlobalScanner = () => {
+            if (globalQrScanner) {
+                globalQrScanner.stop();
+                globalQrScanner.destroy();
+                globalQrScanner = null;
+            }
+            globalScannerModal.style.display = 'none';
+        };
+
         globalStartScannerBtn.addEventListener('click', async () => {
-            if (!globalQrVideo) {
-                globalScanResult.textContent = 'خطأ: عنصر الفيديو غير موجود.';
-                console.error('Video element #global-qr-video not found.');
-                return;
-            }
-            if (globalQrScanner) { // إذا كان موجوداً بالفعل، أعد تشغيله
-                try {
-                    await globalQrScanner.start();
-                    globalStartScannerBtn.style.display = 'none';
-                    globalStopScannerBtn.style.display = 'inline-block';
-                    globalScanResult.textContent = 'الماسح جاهز... يرجى توجيه الكاميرا إلى الباركود.';
-                } catch (error) {
-                    console.error("خطأ في بدء الماسح العام (موجود):", error);
-                    globalScanResult.textContent = 'لا يمكن بدء الماسح: ' + (error.message || error);
-                }
-                return;
-            }
+            globalStartScannerBtn.style.display = 'none';
+            globalScanResult.textContent = 'جاري تفعيل الكاميرا...';
 
-            // إنشاء ماسح جديد
             try {
-                // QrScanner يجب أن تكون متاحة عالمياً هنا لأنها تحملت كسكربت عادي في HTML
+                // التأكد من عدم وجود ماسح قديم
+                if (globalQrScanner) {
+                    globalQrScanner.destroy();
+                    globalQrScanner = null;
+                }
+
                 globalQrScanner = new QrScanner(
                     globalQrVideo,
                     result => {
                         const barcode = result.data;
-                        globalScanResult.textContent = `تم مسح: ${barcode}`;
-                        console.log('Scanned barcode:', barcode);
+                        globalScanResult.textContent = `تم المسح: ${barcode}`;
                         if (targetInputForBarcode) {
-                            const inputElement = document.getElementById(targetInputForBarcode);
-                            if (inputElement) {
-                                inputElement.value = barcode;
-                                // إذا كان الحقل هو حقل بحث، قم بتشغيل حدث 'input'
-                                if (inputElement.id === 'productSearch' || inputElement.id === 'posProductSearch') {
-                                    inputElement.dispatchEvent(new Event('input'));
-                                }
-                            }
+                            targetInputForBarcode.value = barcode;
+                            // تفعيل حدث input للبحث الفوري
+                            targetInputForBarcode.dispatchEvent(new Event('input', { bubbles: true }));
                         }
-                        closeGlobalScanner(); // إغلاق الماسح بعد المسح الناجح
-                    },
-                    {
-                        onDecodeError: error => {
-                            // console.warn(error); // يمكن أن يكون مزعجاً إذا كانت الأخطاء كثيرة
-                        },
+                        setTimeout(closeGlobalScanner, 500); // إغلاق بعد نصف ثانية
+                    }, {
                         highlightScanRegion: true,
                         highlightCodeOutline: true,
-                        // preferredCamera: 'environment' // قد يساعد في اختيار الكاميرا الخلفية على الجوال
                     }
                 );
+                
                 await globalQrScanner.start();
-                globalStartScannerBtn.style.display = 'none';
-                globalStopScannerBtn.style.display = 'inline-block';
-                globalScanResult.textContent = 'الماسح جاهز... يرجى توجيه الكاميرا إلى الباركود.';
+                globalStopScannerBtn.style.display = 'inline-flex';
+                globalScanResult.textContent = 'الكاميرا جاهزة، وجهها نحو الباركود.';
+
             } catch (error) {
-                console.error("خطأ في بدء الماسح العام (جديد):", error);
-                globalScanResult.textContent = 'لا يمكن بدء الماسح: ' + (error.message || error);
-                // رسالة للمستخدم إذا لم يتمكن من الوصول للكاميرا
-                if (error.name === 'NotAllowedError') {
-                    globalScanResult.textContent = 'تم رفض الوصول إلى الكاميرا. يرجى السماح بالوصول في إعدادات المتصفح.';
-                } else if (error.name === 'NotFoundError') {
-                    globalScanResult.textContent = 'لم يتم العثور على كاميرا متصلة.';
-                }
+                console.error("خطأ في تشغيل الماسح الضوئي:", error);
+                globalScanResult.textContent = 'فشل تشغيل الكاميرا. تأكد من منح الأذونات.';
+                globalStartScannerBtn.style.display = 'inline-flex';
             }
         });
-    }
 
-    // إيقاف الماسح الضوئي
-    if (globalStopScannerBtn) {
-        globalStopScannerBtn.addEventListener('click', () => {
-            if (globalQrScanner) {
-                globalQrScanner.stop();
-                globalStartScannerBtn.style.display = 'inline-block';
-                globalStopScannerBtn.style.display = 'none';
-                globalScanResult.textContent = 'الماسح متوقف.';
-            }
-        });
-    }
-
-    // معالجة الإدخال اليدوي للباركود في الماسح العام
-    if (globalProcessManualBarcodeBtn) {
+        globalStopScannerBtn.addEventListener('click', closeGlobalScanner);
+        globalScannerCloseBtn.addEventListener('click', closeGlobalScanner);
+        
         globalProcessManualBarcodeBtn.addEventListener('click', () => {
-            const barcode = globalManualBarcodeInput.value;
-            if (barcode) {
-                if (targetInputForBarcode) {
-                    const inputElement = document.getElementById(targetInputForBarcode);
-                    if (inputElement) {
-                        inputElement.value = barcode;
-                        if (inputElement.id === 'productSearch' || inputElement.id === 'posProductSearch') {
-                            inputElement.dispatchEvent(new Event('input'));
-                        }
-                    }
-                }
-                closeGlobalScanner(); // إغلاق الماسح بعد التطبيق اليدوي
-            } else {
-                alert('يرجى إدخال باركود يدوياً.');
-            }
+             const barcode = globalManualBarcodeInput.value.trim();
+             if(barcode && targetInputForBarcode){
+                targetInputForBarcode.value = barcode;
+                targetInputForBarcode.dispatchEvent(new Event('input', { bubbles: true }));
+                closeGlobalScanner();
+             }
         });
-    }
-}
-
-// مستمعي الأحداث لأزرار "مسح باركود" في جميع الصفحات
-document.querySelectorAll('.open-scanner-btn').forEach(button => {
-    button.addEventListener('click', (e) => {
-        const targetInputId = e.currentTarget.dataset.targetInput;
-        openGlobalScanner(targetInputId);
-    });
-});
-
-
-// ----------------------------------------------------------------------
-// 4. منطق المصادقة (Authentication Logic)
-// ----------------------------------------------------------------------
-
-const currentPageFileName = window.location.pathname.split('/').pop();
-
-// التعامل مع صفحة تسجيل الدخول (login.html)
-if (currentPageFileName === 'login.html' || currentPageFileName === '') {
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = loginForm['username'].value;
-            const password = loginForm['password'].value;
-            const loginMessage = document.getElementById('loginMessage');
-
-            try {
-                await auth.signInWithEmailAndPassword(email, password); // استخدام auth.signInWithEmailAndPassword
-                showMessage('loginMessage', 'تم تسجيل الدخول بنجاح!', false);
-            } catch (error) {
-                console.error("خطأ في تسجيل الدخول:", error);
-                let errorMessage = "حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.";
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                    errorMessage = "اسم المستخدم أو كلمة المرور غير صحيحة.";
-                } else if (error.code === 'auth/invalid-email') {
-                    errorMessage = "صيغة البريد الإلكتروني غير صحيحة.";
-                } else if (error.code === 'auth/network-request-failed') {
-                    errorMessage = "خطأ في الاتصال بالإنترنت. يرجى التحقق من اتصالك.";
-                }
-                showMessage('loginMessage', errorMessage);
-            }
+        
+        // ربط جميع أزرار فتح الماسح بالدالة
+        document.querySelectorAll('.open-scanner-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const targetInputId = e.currentTarget.dataset.targetInput;
+                openGlobalScanner(targetInputId);
+            });
         });
-    }
-}
 
-// التعامل مع تسجيل الخروج
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-    logoutBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        try {
-            await auth.signOut(); // استخدام auth.signOut()
-        } catch (error) {
-            console.error("خطأ في تسجيل الخروج:", error);
-            alert('حدث خطأ أثناء تسجيل الخروج. يرجى المحاولة مرة أخرى.');
-        }
-    });
-}
-
-// حماية المسارات (Route Protection)
-auth.onAuthStateChanged((user) => { // استخدام auth.onAuthStateChanged
-    const protectedPages = ['index.html', 'inventory.html', 'pos.html', 'customers.html', 'sales_history.html', 'qr_scanner.html'];
-    const currentPath = window.location.pathname;
-    const currentPage = currentPath.split('/').pop();
-
-    if (user) {
-        console.log("المستخدم مسجل الدخول:", user.email);
-        if (currentPage === 'login.html' || currentPath === '/' || currentPage === '') {
-            redirectTo('index.html');
-        }
-        const userInfoSpan = document.querySelector('.user-info span');
-        if (userInfoSpan) {
-            userInfoSpan.textContent = `مرحباً، ${user.email.split('@')[0]}!`;
-        }
-    } else {
-        console.log("المستخدم غير مسجل الدخول.");
-        if (protectedPages.includes(currentPage)) {
-            redirectTo('login.html');
-        }
-    }
-});
-
-
-// ----------------------------------------------------------------------
-// 5. منطق إدارة المنتجات (Inventory Management Logic)
-// ----------------------------------------------------------------------
-
-if (currentPageFileName === 'inventory.html') {
-    const addProductBtn = document.getElementById('addProductBtn');
-    const productModal = document.getElementById('productModal');
-    const closeModalBtn = document.querySelector('#productModal .close-button');
-    const productForm = document.getElementById('productForm');
-    const modalTitle = document.getElementById('modalTitle');
-    const productTableBody = document.getElementById('productTableBody');
-    const productSearchInput = document.getElementById('productSearch');
-    const filterBySelect = document.getElementById('filterBy');
-
-    let editingProductId = null;
-
-    // فتح المودال لإضافة منتج جديد
-    if (addProductBtn) {
-        addProductBtn.addEventListener('click', () => {
-            modalTitle.textContent = 'إضافة منتج جديد';
-            productForm.reset(); // مسح النموذج
-            editingProductId = null; // لا يوجد منتج للتعديل حالياً
-            productModal.style.display = 'flex'; // إظهار المودال
-        });
-    }
-
-    // إغلاق المودال
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => {
-            productModal.style.display = 'none'; // إخفاء المودال
-        });
-    }
-
-    // إغلاق المودال عند النقر خارج المحتوى
-    if (productModal) {
         window.addEventListener('click', (event) => {
-            if (event.target === productModal) {
-                productModal.style.display = 'none';
+            if (event.target === globalScannerModal) {
+                closeGlobalScanner();
             }
         });
     }
 
-    // معالجة إرسال نموذج المنتج (إضافة/تعديل)
-    if (productForm) {
+    // ----------------------------------------------------------------------
+    // 4. منطق المصادقة وتسجيل الخروج (Authentication)
+    // ----------------------------------------------------------------------
+    const currentPageFileName = window.location.pathname.split('/').pop() || 'index.html';
+
+    // حماية الصفحات
+    auth.onAuthStateChanged(user => {
+        const isAuthPage = currentPageFileName === 'login.html';
+        if (user) {
+            // المستخدم مسجل دخوله
+            if (isAuthPage) {
+                redirectTo('index.html');
+            }
+            // تحديث اسم المستخدم في الواجهة
+            document.querySelectorAll('.user-info span').forEach(el => {
+                 el.textContent = `مرحباً، ${user.email.split('@')[0]}!`;
+            });
+        } else {
+            // المستخدم غير مسجل دخوله
+            if (!isAuthPage) {
+                redirectTo('login.html');
+            }
+        }
+    });
+
+    // منطق صفحة تسجيل الدخول
+    if (currentPageFileName === 'login.html') {
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = loginForm['username'].value;
+                const password = loginForm['password'].value;
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                    // onAuthStateChanged سيتولى إعادة التوجيه
+                } catch (error) {
+                    console.error("Login Error:", error);
+                    showMessage('loginMessage', 'البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+                }
+            });
+        }
+    }
+    
+    // منطق تسجيل الخروج
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            try {
+                await auth.signOut();
+                // onAuthStateChanged سيتولى إعادة التوجيه
+            } catch (error) {
+                console.error("Logout Error:", error);
+                alert('حدث خطأ أثناء تسجيل الخروج.');
+            }
+        });
+    }
+
+
+    // ----------------------------------------------------------------------
+    // 5. منطق إدارة المنتجات (Inventory Management)
+    // ----------------------------------------------------------------------
+    if (currentPageFileName === 'inventory.html') {
+        const productModal = document.getElementById('productModal');
+        const addProductBtn = document.getElementById('addProductBtn');
+        const productForm = document.getElementById('productForm');
+        const productTableBody = document.getElementById('productTableBody');
+        const productSearchInput = document.getElementById('productSearch');
+        const filterBySelect = document.getElementById('filterBy');
+        let editProductId = null;
+
+        const openProductModal = () => {
+            productForm.reset();
+            editProductId = null;
+            document.getElementById('modalTitle').textContent = 'إضافة منتج جديد';
+            productModal.style.display = 'flex';
+        };
+
+        const closeProductModal = () => productModal.style.display = 'none';
+
+        addProductBtn.addEventListener('click', openProductModal);
+        productModal.querySelector('.close-button').addEventListener('click', closeProductModal);
+
         productForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const productData = {
-                name: productForm['productName'].value,
+                name: productForm['productName'].value.trim(),
                 price: parseFloat(productForm['productPrice'].value),
                 unit: productForm['productUnit'].value,
                 quantity: parseInt(productForm['productQuantity'].value),
-                supplier: productForm['productSupplier'].value || 'غير محدد',
+                supplier: productForm['productSupplier'].value.trim() || 'غير محدد',
+                barcode: productForm['productBarcode'].value.trim() || null,
                 productionDate: productForm['productionDate'].value || null,
                 expiryDate: productForm['expiryDate'].value || null,
-                barcode: productForm['productBarcode'].value || null
+                name_lowercase: productForm['productName'].value.trim().toLowerCase() // للحصول على بحث غير حساس لحالة الأحرف
             };
 
             try {
-                if (editingProductId) {
-                    await db.collection('products').doc(editingProductId).update(productData); // استخدام db.collection().doc().update()
-                    alert('تم تعديل المنتج بنجاح!');
+                if (editProductId) {
+                    await db.collection('products').doc(editProductId).update(productData);
+                    alert('تم تعديل المنتج بنجاح.');
                 } else {
-                    await db.collection('products').add(productData); // استخدام db.collection().add()
-                    alert('تم إضافة المنتج بنجاح!');
+                    await db.collection('products').add(productData);
+                    alert('تم إضافة المنتج بنجاح.');
                 }
-                productModal.style.display = 'none';
+                closeProductModal();
             } catch (error) {
-                console.error("خطأ في حفظ المنتج:", error);
-                alert('حدث خطأ أثناء حفظ المنتج. يرجى التحقق من الكونسول.');
+                console.error("Error saving product:", error);
+                alert('فشل حفظ المنتج.');
             }
         });
-    }
-
-    // وظيفة لعرض المنتجات من Firestore في الجدول
-    async function loadProducts() {
-        productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row">جارٍ تحميل المنتجات...</td></tr>';
-        try {
-            let productsRef = db.collection('products'); // استخدام db.collection()
-            let q = productsRef.orderBy('name'); // استخدام orderBy()
-
-            q.onSnapshot((snapshot) => { // استخدام onSnapshot()
-                productTableBody.innerHTML = '';
-                if (snapshot.empty) {
-                    productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row">لا توجد منتجات لعرضها.</td></tr>';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    const product = doc.data();
-                    const row = productTableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${product.barcode || 'N/A'}</td>
-                        <td>${product.name}</td>
-                        <td>${product.price ? product.price.toFixed(2) : '0.00'}</td>
-                        <td>${product.unit || 'N/A'}</td>
-                        <td>${product.quantity || 0}</td>
-                        <td>${product.supplier || 'N/A'}</td>
-                        <td>${product.productionDate ? formatArabicDate(product.productionDate) : 'N/A'}</td>
-                        <td>${product.expiryDate ? formatArabicDate(product.expiryDate) : 'N/A'}</td>
-                        <td class="actions-cell">
-                            <button class="btn btn-primary btn-icon edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-danger btn-icon delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                });
-                attachProductActionListeners();
-            }, (error) => {
-                console.error("خطأ في الاستماع للمنتجات:", error);
-                productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row" style="color:var(--error-color);">حدث خطأ أثناء تحميل المنتجات.</td></tr>';
-            });
-        } catch (error) {
-            console.error("خطأ في بدء تحميل المنتجات:", error);
-            productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row" style="color:var(--error-color);">خطأ فادح في نظام تحميل المنتجات.</td></tr>';
-        }
-    }
-
-    function attachProductActionListeners() {
-        document.querySelectorAll('.edit-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const productId = e.currentTarget.dataset.id;
-                await editProduct(productId);
-            });
-        });
-
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const productId = e.currentTarget.dataset.id;
-                await deleteProduct(productId);
-            });
-        });
-    }
-
-    async function editProduct(id) {
-        try {
-            const docSnap = await db.collection('products').doc(id).get(); // استخدام db.collection().doc().get()
-            if (docSnap.exists) {
-                const product = docSnap.data();
-                editingProductId = id;
-                modalTitle.textContent = 'تعديل المنتج';
-                productForm.reset(); // للتأكد من مسح أي بيانات سابقة
-                productForm['productName'].value = product.name;
-                productForm['productPrice'].value = product.price;
-                productForm['productUnit'].value = product.unit;
-                productForm['productQuantity'].value = product.quantity;
-                productForm['productSupplier'].value = product.supplier || '';
-                productForm['productionDate'].value = product.productionDate || '';
-                productForm['expiryDate'].value = product.expiryDate || '';
-                productForm['productBarcode'].value = product.barcode || '';
-                productModal.style.display = 'flex';
-            } else {
-                alert('المنتج غير موجود.');
-            }
-        } catch (error) {
-            console.error("خطأ في جلب بيانات المنتج للتعديل:", error);
-            alert('حدث خطأ أثناء جلب بيانات المنتج.');
-        }
-    }
-
-    async function deleteProduct(id) {
-        if (confirm('هل أنت متأكد من رغبتك في حذف هذا المنتج؟')) {
-            try {
-                await db.collection('products').doc(id).delete(); // استخدام db.collection().doc().delete()
-                alert('تم حذف المنتج بنجاح!');
-            } catch (error) {
-                console.error("خطأ في حذف المنتج:", error);
-                alert('حدث خطأ أثناء حذف المنتج.');
-            }
-        }
-    }
-
-    async function applyProductFilters() {
-        productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row">جارٍ البحث والفلترة...</td></tr>';
-        let productsRef = db.collection('products'); // استخدام db.collection()
-        let currentQuery;
-
-        const searchTerm = productSearchInput.value.toLowerCase();
-        const filterType = filterBySelect.value;
-
-        if (filterType === 'low-stock') {
-            currentQuery = productsRef.where('quantity', '<=', 20).orderBy('quantity'); // استخدام where().orderBy()
-        } else if (filterType === 'expiring-soon') {
-            const today = getTodayDateFormatted();
-            const futureDate = new Date();
-            futureDate.setMonth(new Date().getMonth() + 3);
-            const futureDateFormatted = futureDate.toISOString().split('T')[0];
-
-            currentQuery = productsRef
-                .where('expiryDate', '<=', futureDateFormatted)
-                .where('expiryDate', '>=', today)
-                .orderBy('expiryDate', 'asc');
-        } else {
-            currentQuery = productsRef.orderBy('name');
-        }
-
-        currentQuery.onSnapshot((snapshot) => { // استخدام onSnapshot()
+        
+        const renderProducts = (docs) => {
             productTableBody.innerHTML = '';
-            let filteredAndSearchedProducts = [];
-
-            if (snapshot.empty && !searchTerm) {
-                productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row">لا توجد منتجات مطابقة للمعايير.</td></tr>';
+            if (docs.length === 0) {
+                productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row">لا توجد منتجات تطابق البحث.</td></tr>';
                 return;
             }
-
-            snapshot.forEach(doc => {
+            docs.forEach(doc => {
                 const product = doc.data();
-                const productId = doc.id;
-                if (searchTerm) {
-                    const productText = `${product.name || ''} ${product.barcode || ''} ${product.supplier || ''} ${product.expiryDate || ''}`.toLowerCase();
-                    if (productText.includes(searchTerm)) {
-                        filteredAndSearchedProducts.push({ id: productId, ...product });
-                    }
-                } else {
-                    filteredAndSearchedProducts.push({ id: productId, ...product });
-                }
-            });
-
-            if (filteredAndSearchedProducts.length === 0) {
-                productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row">لا توجد منتجات مطابقة للبحث أو الفلترة.</td></tr>';
-                return;
-            }
-
-            filteredAndSearchedProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-
-            filteredAndSearchedProducts.forEach(({ id, ...product }) => {
                 const row = productTableBody.insertRow();
+                row.dataset.id = doc.id;
                 row.innerHTML = `
                     <td>${product.barcode || 'N/A'}</td>
                     <td>${product.name}</td>
-                    <td>${product.price ? product.price.toFixed(2) : '0.00'}</td>
-                    <td>${product.unit || 'N/A'}</td>
-                    <td>${product.quantity || 0}</td>
-                    <td>${product.supplier || 'N/A'}</td>
-                    <td>${product.productionDate ? formatArabicDate(product.productionDate) : 'N/A'}</td>
-                    <td>${product.expiryDate ? formatArabicDate(product.expiryDate) : 'N/A'}</td>
+                    <td>${product.price.toFixed(2)}</td>
+                    <td>${product.unit}</td>
+                    <td>${product.quantity}</td>
+                    <td>${product.supplier}</td>
+                    <td>${product.productionDate || 'N/A'}</td>
+                    <td>${product.expiryDate || 'N/A'}</td>
                     <td class="actions-cell">
-                        <button class="btn btn-primary btn-icon edit-btn" data-id="${id}"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-danger btn-icon delete-btn" data-id="${id}"><i class="fas fa-trash"></i></button>
+                        <button class="btn btn-primary btn-icon edit-btn"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger btn-icon delete-btn"><i class="fas fa-trash"></i></button>
                     </td>
                 `;
             });
-            attachProductActionListeners();
-        }, (error) => {
-            console.error("خطأ في البحث/الفلترة في Firestore:", error);
-            productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row" style="color:var(--error-color);">حدث خطأ أثناء تحميل المنتجات.</td></tr>';
-        });
-    }
-
-    if (productSearchInput) {
-        productSearchInput.addEventListener('input', applyProductFilters);
-    }
-    if (filterBySelect) {
-        filterBySelect.addEventListener('change', applyProductFilters);
-    }
-
-    applyProductFilters();
-}
-
-
-// ----------------------------------------------------------------------
-// 6. منطق لوحة التحكم (Dashboard Logic) - تم تحسين التقارير الوهمية
-// ----------------------------------------------------------------------
-
-if (currentPageFileName === 'index.html') {
-    const lowStockCardValue = document.getElementById('lowStockCount');
-    if (lowStockCardValue) {
-        db.collection('products').where('quantity', '<=', 20).onSnapshot((snapshot) => {
-            lowStockCardValue.textContent = snapshot.size;
-        }, error => {
-            console.error("Error getting low stock products:", error);
-            lowStockCardValue.textContent = 'خطأ';
-        });
-    }
-
-    const expiringSoonCardValue = document.getElementById('expiringCount');
-    if (expiringSoonCardValue) {
-        const today = getTodayDateFormatted();
-        const futureDate = new Date();
-        futureDate.setMonth(new Date().getMonth() + 3);
-        const futureDateFormatted = futureDate.toISOString().split('T')[0];
-
-        db.collection('products')
-            .where('expiryDate', '<=', futureDateFormatted)
-            .where('expiryDate', '>=', today)
-            .orderBy('expiryDate', 'asc')
-            .onSnapshot((snapshot) => {
-                expiringSoonCardValue.textContent = snapshot.size;
-            }, error => {
-                console.error("Error getting expiring products:", error);
-                expiringSoonCardValue.textContent = 'خطأ';
-            });
-    }
-
-    // --- تحديث لتقارير المبيعات (ستعمل الآن إذا كانت هناك بيانات مبيعات في Firestore) ---
-    const todaySalesElement = document.getElementById('todaySales');
-    const todayInvoicesElement = document.getElementById('todayInvoices');
-    const reportTopSellingElement = document.getElementById('reportTopSelling');
-
-    if (todaySalesElement) {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date();
-        endOfDay.setHours(23, 59, 59, 999);
-
-        db.collection('sales')
-            .where('timestamp', '>=', startOfDay)
-            .where('timestamp', '<=', endOfDay)
-            .onSnapshot((snapshot) => {
-                let totalSales = 0;
-                snapshot.forEach(doc => {
-                    totalSales += doc.data().grandTotal || 0; // استخدم grandTotal للفاتورة
-                });
-                todaySalesElement.textContent = `${totalSales.toFixed(2)} جنيه`;
-                todayInvoicesElement.textContent = snapshot.size;
-            }, (error) => {
-                console.error("Error fetching daily sales:", error);
-                todaySalesElement.textContent = 'خطأ';
-                todayInvoicesElement.textContent = 'خطأ';
-            });
-    }
-    // نهاية تحديث تقارير المبيعات (ستعمل بشكل كامل عند إضافة بيانات مبيعات حقيقية من POS)
-
-    const ctx = document.getElementById('salesChart');
-    if (ctx) {
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
-                datasets: [{
-                    label: 'إجمالي المبيعات',
-                    data: [1200, 1900, 3000, 5000, 2300, 1700, 3500], // بيانات وهمية حالياً
-                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
-                    borderColor: 'var(--primary-color)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        title: {
-                            display: true,
-                            text: 'المبيعات (جنيه)'
-                        }
-                    },
-                    x: {
-                        title: {
-                            display: true,
-                            text: 'الأيام'
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
+        };
+        
+        db.collection('products').orderBy('name').onSnapshot(snapshot => {
+             renderProducts(snapshot.docs);
+        }, err => console.error(err));
+        
+        productTableBody.addEventListener('click', async (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            
+            const row = target.closest('tr');
+            const docId = row.dataset.id;
+            
+            if (target.classList.contains('edit-btn')) {
+                const doc = await db.collection('products').doc(docId).get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    editProductId = docId;
+                    productForm['productName'].value = data.name;
+                    productForm['productPrice'].value = data.price;
+                    productForm['productUnit'].value = data.unit;
+                    productForm['productQuantity'].value = data.quantity;
+                    productForm['productSupplier'].value = data.supplier;
+                    productForm['productBarcode'].value = data.barcode;
+                    productForm['productionDate'].value = data.productionDate;
+                    productForm['expiryDate'].value = data.expiryDate;
+                    document.getElementById('modalTitle').textContent = 'تعديل المنتج';
+                    productModal.style.display = 'flex';
+                }
+            } else if (target.classList.contains('delete-btn')) {
+                if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+                    await db.collection('products').doc(docId).delete();
+                    alert('تم حذف المنتج.');
                 }
             }
         });
     }
-}
+    
 
-// ----------------------------------------------------------------------
-// 7. منطق نقطة البيع (POS Logic) - تم تفعيل البحث عن المنتجات
-// ----------------------------------------------------------------------
-if (currentPageFileName === 'pos.html') {
-    const posProductSearchInput = document.getElementById('posProductSearch');
-    const posSearchResultsDiv = document.getElementById('posSearchResults');
-    const posScanBarcodeBtn = document.getElementById('posScanBarcodeBtn');
+    // ----------------------------------------------------------------------
+    // 6. منطق نقطة البيع (POS)
+    // ----------------------------------------------------------------------
+    if (currentPageFileName === 'pos.html') {
+        const posProductSearchInput = document.getElementById('posProductSearch');
+        const posSearchResultsDiv = document.getElementById('posSearchResults');
+        const invoiceItemsBody = document.getElementById('invoiceItemsBody');
+        const subTotalSpan = document.getElementById('subTotal');
+        const grandTotalSpan = document.getElementById('grandTotal');
+        const discountInput = document.getElementById('discount');
+        const taxInput = document.getElementById('tax');
+        const completeSaleBtn = document.getElementById('completeSaleBtn');
 
-    if (posScanBarcodeBtn) {
-        posScanBarcodeBtn.addEventListener('click', () => {
-            openGlobalScanner('posProductSearch'); // يوجه النتيجة إلى حقل البحث في نقطة البيع
-        });
-    }
+        let invoiceItems = [];
+        let searchTimeout;
 
-    const paymentTypeSelect = document.getElementById('paymentType');
-    const paidAmountGroup = document.getElementById('paidAmountGroup');
-    if (paymentTypeSelect) {
-        paymentTypeSelect.addEventListener('change', (e) => {
-            if (e.target.value === 'partial') {
-                paidAmountGroup.style.display = 'block';
+        const renderInvoice = () => {
+            invoiceItemsBody.innerHTML = '';
+            if (invoiceItems.length === 0) {
+                 invoiceItemsBody.innerHTML = '<tr><td colspan="6" class="no-data-row">لم يتم إضافة أي منتجات بعد.</td></tr>';
             } else {
-                paidAmountGroup.style.display = 'none';
+                 invoiceItems.forEach((item, index) => {
+                    const row = invoiceItemsBody.insertRow();
+                    row.innerHTML = `
+                        <td>${item.name}</td>
+                        <td>${item.unit}</td>
+                        <td><input type="number" class="invoice-item-qty" value="${item.quantity}" min="1" data-index="${index}"></td>
+                        <td>${item.price.toFixed(2)}</td>
+                        <td>${(item.price * item.quantity).toFixed(2)}</td>
+                        <td><button class="btn btn-danger btn-sm remove-item-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
+                    `;
+                });
+            }
+            calculateTotals();
+        };
+        
+        const calculateTotals = () => {
+             let subTotal = invoiceItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+             let discountValue = parseFloat(discountInput.value) || 0;
+             let taxPercent = parseFloat(taxInput.value) || 0;
+             
+             let totalAfterDiscount = subTotal - discountValue;
+             let taxAmount = totalAfterDiscount * (taxPercent / 100);
+             let grandTotal = totalAfterDiscount + taxAmount;
+             
+             subTotalSpan.textContent = subTotal.toFixed(2);
+             grandTotalSpan.textContent = grandTotal.toFixed(2);
+        };
+        
+        invoiceItemsBody.addEventListener('change', (e) => {
+             if(e.target.classList.contains('invoice-item-qty')){
+                const index = e.target.dataset.index;
+                const newQty = parseInt(e.target.value);
+                if (newQty > 0) {
+                    invoiceItems[index].quantity = newQty;
+                    renderInvoice();
+                }
+             }
+        });
+        
+        invoiceItemsBody.addEventListener('click', (e) => {
+             if(e.target.closest('.remove-item-btn')){
+                const index = e.target.closest('.remove-item-btn').dataset.index;
+                invoiceItems.splice(index, 1);
+                renderInvoice();
+             }
+        });
+        
+        [discountInput, taxInput].forEach(input => input.addEventListener('input', calculateTotals));
+
+        posSearchResultsDiv.addEventListener('click', (e) => {
+            if (e.target.closest('.add-to-cart-btn')) {
+                const button = e.target.closest('.add-to-cart-btn');
+                const product = {
+                    id: button.dataset.productId,
+                    name: button.dataset.productName,
+                    price: parseFloat(button.dataset.productPrice),
+                    unit: button.dataset.productUnit,
+                    quantity: 1
+                };
+
+                const existingItem = invoiceItems.find(item => item.id === product.id);
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    invoiceItems.push(product);
+                }
+                renderInvoice();
             }
         });
-    }
 
-    // --- منطق البحث عن المنتجات في نقطة البيع ---
-    if (posProductSearchInput) {
-        let searchTimeout;
         posProductSearchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                searchProductsForPOS(posProductSearchInput.value);
-            }, 300); // تأخير 300 مللي ثانية للبحث
-        });
-    }
-
-    async function searchProductsForPOS(searchTerm) {
-        posSearchResultsDiv.innerHTML = '<p class="no-data-row">جارٍ البحث عن المنتجات...</p>';
-        if (!searchTerm) {
-            posSearchResultsDiv.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>';
-            return;
-        }
-
-        const lowerCaseSearchTerm = searchTerm.toLowerCase();
-        let productsRef = db.collection('products'); // استخدام db.collection()
-
-        try {
-            // استخدام get() بدلاً من onSnapshot هنا للحصول على لقطة واحدة لنتائج البحث
-            const snapshot = await productsRef.orderBy('name').get(); // استخدام productsRef.orderBy().get()
-
-            let results = [];
-            snapshot.forEach(doc => {
-                const product = doc.data();
-                const productText = `${product.name || ''} ${product.barcode || ''}`.toLowerCase();
-                if (productText.includes(lowerCaseSearchTerm)) {
-                    results.push({ id: doc.id, ...product });
-                }
-            });
-
-            if (results.length === 0) {
-                posSearchResultsDiv.innerHTML = '<p class="no-data-row">لا توجد منتجات مطابقة لـ "'+ searchTerm +'".</p>';
+            const searchTerm = posProductSearchInput.value.trim().toLowerCase();
+            if (searchTerm.length < 2) {
+                posSearchResultsDiv.innerHTML = '<p class="no-data-row">أدخل حرفين على الأقل للبحث.</p>';
                 return;
             }
-
-            posSearchResultsDiv.innerHTML = ''; // مسح الرسالة التحميل
-            results.forEach(product => {
-                const productResultDiv = document.createElement('div');
-                productResultDiv.classList.add('product-item-result');
-                productResultDiv.innerHTML = `
-                    <span>${product.name} - ${product.price ? product.price.toFixed(2) : '0.00'} جنيه/${product.unit || 'وحدة'}</span>
-                    <div class="product-item-controls">
-                        <input type="number" value="1" min="1" class="item-quantity-pos" data-max-quantity="${product.quantity}">
-                        <select class="item-unit-pos">
-                            <option value="${product.unit || 'وحدة'}">${product.unit || 'وحدة'}</option>
-                            </select>
-                        <button class="btn btn-primary btn-sm add-to-cart-btn"
-                                data-product-id="${product.id}"
-                                data-product-name="${product.name}"
-                                data-product-price="${product.price}"
-                                data-product-unit="${product.unit || 'وحدة'}">
-                            <i class="fas fa-cart-plus"></i>
-                        </button>
-                    </div>
-                `;
-                posSearchResultsDiv.appendChild(productResultDiv);
-            });
-            attachAddToCartListeners(); // إضافة مستمعات لأزرار الإضافة إلى الفاتورة
-        } catch (error) {
-            console.error("خطأ في البحث عن المنتجات لنقطة البيع:", error);
-            posSearchResultsDiv.innerHTML = '<p class="no-data-row" style="color:var(--error-color);">حدث خطأ أثناء البحث عن المنتجات.</p>';
-        }
-    }
-
-    let currentInvoiceItems = []; // مصفوفة لتخزين عناصر الفاتورة
-    const invoiceItemsBody = document.getElementById('invoiceItemsBody');
-    const subTotalSpan = document.getElementById('subTotal');
-    const grandTotalSpan = document.getElementById('grandTotal');
-    const discountInput = document.getElementById('discount');
-    const taxInput = document.getElementById('tax');
-
-    function attachAddToCartListeners() {
-        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const productId = e.currentTarget.dataset.productId;
-                const productName = e.currentTarget.dataset.productName;
-                const productPrice = parseFloat(e.currentTarget.dataset.productPrice);
-                const productUnit = e.currentTarget.dataset.productUnit;
-                const quantityInput = e.currentTarget.closest('.product-item-controls').querySelector('.item-quantity-pos');
-                const quantity = parseInt(quantityInput.value);
-                const maxQuantity = parseInt(quantityInput.dataset.maxQuantity); // الكمية المتاحة في المخزون
-
-                if (quantity <= 0) {
-                    alert('الكمية يجب أن تكون أكبر من صفر.');
-                    return;
-                }
-                if (quantity > maxQuantity) {
-                    alert(`الكمية المطلوبة (${quantity}) أكبر من الكمية المتاحة في المخزون (${maxQuantity}).`);
-                    return;
-                }
-
-                addToInvoice({ id: productId, name: productName, price: productPrice, unit: productUnit, quantity: quantity });
-            });
-        });
-    }
-
-
-    function addToInvoice(item) {
-        const existingItemIndex = currentInvoiceItems.findIndex(i => i.id === item.id && i.unit === item.unit);
-        if (existingItemIndex > -1) {
-            currentInvoiceItems[existingItemIndex].quantity += item.quantity;
-        } else {
-            currentInvoiceItems.push(item);
-        }
-        renderInvoiceItems();
-        calculateInvoiceTotals();
-    }
-
-    function renderInvoiceItems() {
-        if (currentInvoiceItems.length === 0) {
-            invoiceItemsBody.innerHTML = '<tr><td colspan="6" class="no-data-row">لم يتم إضافة أي منتجات بعد.</td></tr>';
-            return;
-        }
-
-        invoiceItemsBody.innerHTML = '';
-        currentInvoiceItems.forEach((item, index) => {
-            const row = invoiceItemsBody.insertRow();
-            row.innerHTML = `
-                <td>${item.name}</td>
-                <td>${item.unit}</td>
-                <td>${item.quantity}</td>
-                <td>${item.price.toFixed(2)}</td>
-                <td>${(item.quantity * item.price).toFixed(2)}</td>
-                <td>
-                    <button class="btn btn-danger btn-sm remove-from-invoice-btn" data-index="${index}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </td>
-            `;
-        });
-        document.querySelectorAll('.remove-from-invoice-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const indexToRemove = parseInt(e.currentTarget.dataset.index);
-                currentInvoiceItems.splice(indexToRemove, 1);
-                renderInvoiceItems();
-                calculateInvoiceTotals();
-            });
-        });
-    }
-
-    function calculateInvoiceTotals() {
-        let subTotal = currentInvoiceItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-        let discount = parseFloat(discountInput.value) || 0;
-        let tax = parseFloat(taxInput.value) || 0;
-
-        let totalAfterDiscount;
-        if (discountInput.value.includes('%')) {
-             totalAfterDiscount = subTotal * (1 - (discount / 100));
-        } else {
-             totalAfterDiscount = subTotal - discount;
-        }
-
-
-        let grandTotal = totalAfterDiscount * (1 + (tax / 100));
-
-        subTotalSpan.textContent = grandTotal.toFixed(2); // تم تعديل هذا ليظهر الإجمالي بعد الخصم والضريبة
-        grandTotalSpan.textContent = grandTotal.toFixed(2); // الإجمالي النهائي
-    }
-
-    discountInput.addEventListener('input', calculateInvoiceTotals);
-    taxInput.addEventListener('input', calculateInvoiceTotals);
-
-    const completeSaleBtn = document.getElementById('completeSaleBtn');
-    if (completeSaleBtn) {
-        completeSaleBtn.addEventListener('click', async () => {
-            if (currentInvoiceItems.length === 0) {
-                alert('لا توجد منتجات في الفاتورة لإتمام البيع.');
-                return;
-            }
-            if (!confirm('هل أنت متأكد من إتمام عملية البيع؟')) {
-                return;
-            }
-
-            try {
-                // 1. توليد رقم فاتورة فريد (مثال بسيط)
-                const invoiceNumber = `INV-${Date.now()}`;
-
-                // 2. تحديث المخزون
-                for (const item of currentInvoiceItems) {
-                    const productRef = db.collection('products').doc(item.id); // استخدام db.collection().doc()
-                    const productSnap = await productRef.get(); // استخدام .get()
-                    if (productSnap.exists) {
-                        const currentQuantity = productSnap.data().quantity;
-                        const newQuantity = currentQuantity - item.quantity;
-                        if (newQuantity < 0) {
-                            alert(`خطأ: الكمية المتاحة من ${item.name} غير كافية.`);
-                            return; // إلغاء العملية كلها إذا كان هناك نقص
-                        }
-                        await productRef.update({ quantity: newQuantity }); // استخدام productRef.update()
+            searchTimeout = setTimeout(async () => {
+                posSearchResultsDiv.innerHTML = '<p class="no-data-row">جاري البحث...</p>';
+                try {
+                    // ملاحظة: البحث الفعال يتطلب فهرسة في Firestore
+                    const snapshot = await db.collection('products')
+                                            .where('name_lowercase', '>=', searchTerm)
+                                            .where('name_lowercase', '<=', searchTerm + '\uf8ff')
+                                            .limit(10)
+                                            .get();
+                    
+                    posSearchResultsDiv.innerHTML = '';
+                    if (snapshot.empty) {
+                        posSearchResultsDiv.innerHTML = '<p class="no-data-row">لا توجد منتجات مطابقة.</p>';
                     } else {
-                        alert(`خطأ: المنتج ${item.name} لم يعد موجوداً في المخزون.`);
-                        return;
+                        snapshot.forEach(doc => {
+                            const product = doc.data();
+                            posSearchResultsDiv.innerHTML += `
+                                <div class="product-item-result">
+                                    <span>${product.name} - ${product.price.toFixed(2)} جنيه</span>
+                                    <button class="btn btn-primary btn-sm add-to-cart-btn"
+                                            data-product-id="${doc.id}"
+                                            data-product-name="${product.name}"
+                                            data-product-price="${product.price}"
+                                            data-product-unit="${product.unit}">
+                                        <i class="fas fa-cart-plus"></i> إضافة
+                                    </button>
+                                </div>
+                            `;
+                        });
                     }
+                } catch (error) {
+                    console.error("POS search error:", error);
+                    posSearchResultsDiv.innerHTML = '<p class="no-data-row" style="color:var(--error-color);">خطأ في البحث.</p>';
                 }
-
-                // 3. حفظ الفاتورة في Firestore
-                const invoiceData = {
-                    invoiceNumber: invoiceNumber,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp(), // وقت وتاريخ البيع من خادم Firebase
-                    items: currentInvoiceItems,
-                    subTotal: parseFloat(subTotalSpan.textContent),
-                    discount: parseFloat(discountInput.value) || 0,
-                    tax: parseFloat(taxInput.value) || 0,
-                    grandTotal: parseFloat(grandTotalSpan.textContent),
-                    paymentType: paymentTypeSelect.value,
-                    paidAmount: paymentTypeSelect.value === 'partial' ? parseFloat(document.getElementById('paidAmount').value) : parseFloat(grandTotalSpan.textContent),
-                    customer: document.getElementById('customerSelect').value || null, // ربط بالعميل
-                    status: paymentTypeSelect.value === 'credit' ? 'آجل' : 'مدفوع' // حالة الفاتورة
-                };
-                await db.collection('sales').add(invoiceData); // استخدام db.collection().add()
-
-                alert('تم إتمام البيع وحفظ الفاتورة بنجاح!');
-                currentInvoiceItems = []; // مسح الفاتورة بعد البيع
-                renderInvoiceItems();
-                calculateInvoiceTotals();
-                posProductSearchInput.value = ''; // مسح البحث
-                posSearchResultsDiv.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>';
-            } catch (error) {
-                console.error("خطأ في إتمام البيع:", error);
-                alert('حدث خطأ فادح أثناء إتمام البيع. يرجى التحقق من الكونسول.');
-            }
+            }, 300);
         });
+        
+        completeSaleBtn.addEventListener('click', async () => {
+             if (invoiceItems.length === 0) {
+                alert('الفاتورة فارغة!');
+                return;
+             }
+
+             const grandTotal = parseFloat(grandTotalSpan.textContent);
+             const invoiceData = {
+                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                 items: invoiceItems,
+                 subTotal: parseFloat(subTotalSpan.textContent),
+                 discount: parseFloat(discountInput.value) || 0,
+                 tax: parseFloat(taxInput.value) || 0,
+                 grandTotal: grandTotal,
+                 paymentType: document.getElementById('paymentType').value
+             };
+             
+             const batch = db.batch(); // استخدام batch لضمان تنفيذ كل العمليات معًا
+             
+             try {
+                // 1. إضافة الفاتورة للمبيعات
+                const saleRef = db.collection('sales').doc();
+                batch.set(saleRef, invoiceData);
+                
+                // 2. تحديث كميات المنتجات
+                invoiceItems.forEach(item => {
+                    const productRef = db.collection('products').doc(item.id);
+                    batch.update(productRef, {
+                        quantity: firebase.firestore.FieldValue.increment(-item.quantity)
+                    });
+                });
+                
+                await batch.commit();
+                alert('تمت عملية البيع بنجاح!');
+                // إعادة تعيين الواجهة
+                invoiceItems = [];
+                renderInvoice();
+                posProductSearchInput.value = '';
+                posSearchResultsDiv.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>';
+                discountInput.value = '0';
+                taxInput.value = '0';
+             } catch(error) {
+                console.error("Error completing sale:", error);
+                alert('فشل إتمام البيع. قد تكون الكمية غير كافية لأحد المنتجات.');
+             }
+        });
+        
+        renderInvoice();
     }
-}
 
-// ----------------------------------------------------------------------
-// 8. منطق إدارة العملاء (Customer Management Logic) - تم إصلاح فتح المودال التلقائي
-// ----------------------------------------------------------------------
-if (currentPageFileName === 'customers.html') {
-    const addCustomerBtn = document.getElementById('addCustomerBtn');
-    const customerModal = document.getElementById('customerModal');
-    const closeCustomerModalBtn = document.querySelector('#customerModal .close-button');
 
-    const payDebtModal = document.getElementById('payDebtModal');
-    const closePayDebtModalBtn = document.querySelector('#payDebtModal .close-button');
+    // ----------------------------------------------------------------------
+    // 7. منطق لوحة التحكم (Dashboard)
+    // ----------------------------------------------------------------------
+    if (currentPageFileName === 'index.html') {
+        const todaySalesEl = document.getElementById('todaySales');
+        const todayInvoicesEl = document.getElementById('todayInvoices');
+        const lowStockCountEl = document.getElementById('lowStockCount');
+        const expiringCountEl = document.getElementById('expiringCount');
 
-    const customerInvoicesModal = document.getElementById('customerInvoicesModal');
-    const closeCustomerInvoicesModalBtn = document.querySelector('#customerInvoicesModal .close-button');
+        // منتجات منخفضة المخزون
+        db.collection('products').where('quantity', '<=', 10).onSnapshot(snap => {
+            lowStockCountEl.textContent = snap.size;
+        });
 
-    const customerForm = document.getElementById('customerForm');
-    const customerTableBody = document.getElementById('customerTableBody');
+        // مبيعات اليوم
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
 
-    let editingCustomerId = null;
+        db.collection('sales').where('timestamp', '>=', startOfDay).onSnapshot(snap => {
+            let totalSales = 0;
+            snap.forEach(doc => {
+                totalSales += doc.data().grandTotal;
+            });
+            todaySalesEl.textContent = `${totalSales.toFixed(2)} جنيه`;
+            todayInvoicesEl.textContent = snap.size;
+        });
+        
+        // منتجات قرب انتهاء الصلاحية (مثال: خلال 90 يوم)
+        const ninetyDaysFromNow = new Date();
+        ninetyDaysFromNow.setDate(ninetyDaysFromNow.getDate() + 90);
+        const ninetyDaysFromNowStr = ninetyDaysFromNow.toISOString().split('T')[0];
+        
+        db.collection('products').where('expiryDate', '!=', null).where('expiryDate', '<=', ninetyDaysFromNowStr).get().then(snap => {
+            expiringCountEl.textContent = snap.size;
+        });
 
-    // فتح مودال إضافة/تعديل العميل
-    if (addCustomerBtn) {
-        addCustomerBtn.addEventListener('click', () => {
-            document.getElementById('customerModalTitle').textContent = 'إضافة عميل جديد';
+        // مخطط وهمي للمبيعات (يمكن تطويره لاحقًا ليعكس البيانات الحقيقية)
+        const salesChartCanvas = document.getElementById('salesChart');
+        if (salesChartCanvas) {
+            new Chart(salesChartCanvas, {
+                type: 'line',
+                data: {
+                    labels: ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'],
+                    datasets: [{
+                        label: 'إجمالي المبيعات',
+                        data: [120, 190, 300, 500, 230, 170, 350],
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        borderColor: 'var(--primary-color)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+        }
+    }
+    
+    // ----------------------------------------------------------------------
+    // 8. منطق إدارة العملاء (Customers)
+    // ----------------------------------------------------------------------
+     if (currentPageFileName === 'customers.html') {
+        const customerModal = document.getElementById('customerModal');
+        const addCustomerBtn = document.getElementById('addCustomerBtn');
+        const customerForm = document.getElementById('customerForm');
+        const customerTableBody = document.getElementById('customerTableBody');
+        let editingCustomerId = null;
+
+        const openCustomerModal = () => {
             customerForm.reset();
             editingCustomerId = null;
+            document.getElementById('customerModalTitle').textContent = 'إضافة عميل جديد';
             customerModal.style.display = 'flex';
-        });
-    }
+        };
 
-    // إغلاق مودال إضافة/تعديل العميل
-    if (closeCustomerModalBtn) {
-        closeCustomerModalBtn.addEventListener('click', () => {
-            customerModal.style.display = 'none';
-        });
-    }
-    if (customerModal) {
-        window.addEventListener('click', (event) => {
-            if (event.target === customerModal) {
-                customerModal.style.display = 'none';
-            }
-        });
-    }
+        const closeCustomerModal = () => customerModal.style.display = 'none';
 
-    // إغلاق مودال سداد الدين
-    if (closePayDebtModalBtn) {
-        closePayDebtModalBtn.addEventListener('click', () => {
-            payDebtModal.style.display = 'none';
-        });
-    }
-    if (payDebtModal) {
-        window.addEventListener('click', (event) => {
-            if (event.target === payDebtModal) {
-                payDebtModal.style.display = 'none';
-            }
-        });
-    }
+        addCustomerBtn.addEventListener('click', openCustomerModal);
+        customerModal.querySelector('.close-button').addEventListener('click', closeCustomerModal);
 
-    // إغلاق مودال فواتير العميل
-    if (closeCustomerInvoicesModalBtn) {
-        closeCustomerInvoicesModalBtn.addEventListener('click', () => {
-            customerInvoicesModal.style.display = 'none';
-        });
-    }
-    if (customerInvoicesModal) {
-        window.addEventListener('click', (event) => {
-            if (event.target === customerInvoicesModal) {
-                customerInvoicesModal.style.display = 'none';
-            }
-        });
-    }
-
-    // --- منطق إدارة العملاء (CRUD، عرض، بحث، فلترة) ---
-    if (customerForm) {
         customerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const customerData = {
-                name: customerForm['customerName'].value,
-                phone: customerForm['customerPhone'].value || null,
-                address: customerForm['customerAddress'].value || null,
-                notes: customerForm['customerNotes'].value || null,
-                currentDebt: 0, // الدين الافتراضي لعميل جديد
-                invoiceCount: 0, // عدد الفواتير الافتراضي
-                lastTransaction: null // آخر معاملة
+                name: customerForm['customerName'].value.trim(),
+                phone: customerForm['customerPhone'].value.trim() || null,
+                address: customerForm['customerAddress'].value.trim() || null,
+                notes: customerForm['customerNotes'].value.trim() || null,
             };
 
             try {
                 if (editingCustomerId) {
                     await db.collection('customers').doc(editingCustomerId).update(customerData);
-                    alert('تم تعديل العميل بنجاح!');
+                    alert('تم تعديل العميل بنجاح.');
                 } else {
-                    await db.collection('customers').add(customerData);
-                    alert('تم إضافة العميل بنجاح!');
+                    await db.collection('customers').add({...customerData, currentDebt: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp()});
+                    alert('تم إضافة العميل بنجاح.');
                 }
-                customerModal.style.display = 'none';
-                loadCustomers(); // إعادة تحميل العملاء بعد الحفظ
+                closeCustomerModal();
             } catch (error) {
-                console.error("خطأ في حفظ العميل:", error);
-                alert('حدث خطأ أثناء حفظ العميل. يرجى التحقق من الكونسول.');
+                console.error("Error saving customer:", error);
+                alert('فشل حفظ العميل.');
             }
         });
-    }
-
-    async function loadCustomers() {
-        customerTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row">جارٍ تحميل العملاء...</td></tr>';
-        try {
-            db.collection('customers').orderBy('name').onSnapshot((snapshot) => { // استخدام db.collection().orderBy().onSnapshot()
-                customerTableBody.innerHTML = '';
-                if (snapshot.empty) {
-                    customerTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row">لا توجد بيانات عملاء لعرضها.</td></tr>';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    const customer = doc.data();
-                    const row = customerTableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${customer.name}</td>
-                        <td>${customer.phone || 'N/A'}</td>
-                        <td>${customer.address || 'N/A'}</td>
-                        <td>${(customer.currentDebt || 0).toFixed(2)} جنيه</td>
-                        <td>${customer.invoiceCount || 0}</td>
-                        <td>${customer.lastTransaction ? formatArabicDate(new Date(customer.lastTransaction.toDate()).toISOString().split('T')[0]) : 'N/A'}</td>
-                        <td class="actions-cell">
-                            <button class="btn btn-primary btn-icon edit-customer-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-secondary btn-icon pay-debt-btn" data-id="${doc.id}" data-name="${customer.name}" data-debt="${customer.currentDebt || 0}"><i class="fas fa-hand-holding-usd"></i> سداد</button>
-                            <button class="btn btn-info btn-icon view-invoices-btn" data-id="${doc.id}" data-name="${customer.name}"><i class="fas fa-file-invoice"></i> فواتير</button>
-                            <button class="btn btn-danger btn-icon delete-customer-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                });
-                attachCustomerActionListeners();
-            }, (error) => {
-                console.error("خطأ في تحميل العملاء:", error);
-                customerTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row" style="color:var(--error-color);">حدث خطأ أثناء تحميل العملاء.</td></tr>';
-            });
-        } catch (error) {
-            console.error("خطأ في بدء تحميل العملاء:", error);
-            customerTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row" style="color:var(--error-color);">خطأ فادح في نظام تحميل العملاء.</td></tr>';
-        }
-    }
-
-    function attachCustomerActionListeners() {
-        document.querySelectorAll('.edit-customer-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const customerId = e.currentTarget.dataset.id;
-                await editCustomer(customerId);
-            });
-        });
-
-        document.querySelectorAll('.delete-customer-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const customerId = e.currentTarget.dataset.id;
-                await deleteCustomer(customerId);
-            });
-        });
-
-        document.querySelectorAll('.pay-debt-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const customerId = e.currentTarget.dataset.id;
-                const customerName = e.currentTarget.dataset.name;
-                const customerDebt = parseFloat(e.currentTarget.dataset.debt);
-                openPayDebtModal(customerId, customerName, customerDebt);
-            });
-        });
-
-        document.querySelectorAll('.view-invoices-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const customerId = e.currentTarget.dataset.id;
-                const customerName = e.currentTarget.dataset.name;
-                await openCustomerInvoicesModal(customerId, customerName);
-            });
-        });
-    }
-
-    async function editCustomer(id) {
-        try {
-            const docSnap = await db.collection('customers').doc(id).get(); // استخدام db.collection().doc().get()
-            if (docSnap.exists) {
-                const customer = docSnap.data();
-                editingCustomerId = id;
-                document.getElementById('customerModalTitle').textContent = 'تعديل بيانات العميل';
-                customerForm.reset();
-                customerForm['customerName'].value = customer.name;
-                customerForm['customerPhone'].value = customer.phone || '';
-                customerForm['customerAddress'].value = customer.address || '';
-                customerForm['customerNotes'].value = customer.notes || '';
-                customerModal.style.display = 'flex';
-            } else {
-                alert('العميل غير موجود.');
-            }
-        } catch (error) {
-            console.error("خطأ في جلب بيانات العميل للتعديل:", error);
-            alert('حدث خطأ أثناء جلب بيانات العميل.');
-        }
-    }
-
-    async function deleteCustomer(id) {
-        if (confirm('هل أنت متأكد من رغبتك في حذف هذا العميل؟ سيتم حذف جميع بياناته وديونه.')) {
-            try {
-                await db.collection('customers').doc(id).delete(); // استخدام db.collection().doc().delete()
-                alert('تم حذف العميل بنجاح!');
-            } catch (error) {
-                console.error("خطأ في حذف العميل:", error);
-                alert('حدث خطأ أثناء حذف العميل.');
-            }
-        }
-    }
-
-    // منطق سداد الدين
-    const payDebtForm = document.getElementById('payDebtForm');
-    let currentPayDebtCustomerId = null;
-    if (payDebtForm) {
-        payDebtForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const amountToPay = parseFloat(payDebtForm['debtAmountToPay'].value);
-            if (isNaN(amountToPay) || amountToPay <= 0) {
-                alert('يرجى إدخال مبلغ صحيح لسداده.');
+        
+        db.collection('customers').orderBy('name').onSnapshot(snapshot => {
+             customerTableBody.innerHTML = '';
+             if (snapshot.empty) {
+                customerTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row">لا يوجد عملاء.</td></tr>';
                 return;
-            }
-
-            try {
-                const customerRef = db.collection('customers').doc(currentPayDebtCustomerId); // استخدام db.collection().doc()
-                const customerSnap = await customerRef.get(); // استخدام .get()
-                if (customerSnap.exists) {
-                    const currentDebt = customerSnap.data().currentDebt || 0;
-                    const newDebt = currentDebt - amountToPay;
-                    if (newDebt < 0) {
-                        alert('المبلغ المدفوع أكبر من الدين المستحق. سيتم سداد الدين بالكامل.');
-                        await customerRef.update({ currentDebt: 0 }); // استخدام .update()
-                    } else {
-                        await customerRef.update({ currentDebt: newDebt });
-                    }
-                    alert('تم سداد الدين بنجاح!');
-                    payDebtModal.style.display = 'none';
-                    loadCustomers(); // تحديث قائمة العملاء
-                } else {
-                    alert('العميل غير موجود.');
+             }
+             snapshot.forEach(doc => {
+                 const customer = doc.data();
+                 const row = customerTableBody.insertRow();
+                 row.dataset.id = doc.id;
+                 row.innerHTML = `
+                    <td>${customer.name}</td>
+                    <td>${customer.phone || 'N/A'}</td>
+                    <td>${customer.address || 'N/A'}</td>
+                    <td>${(customer.currentDebt || 0).toFixed(2)}</td>
+                    <td>${customer.invoiceCount || 0}</td>
+                    <td>${customer.lastTransaction ? formatArabicDate(customer.lastTransaction) : 'N/A'}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-primary btn-icon edit-customer-btn"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-danger btn-icon delete-customer-btn"><i class="fas fa-trash"></i></button>
+                    </td>
+                 `;
+             });
+        }, err => console.error(err));
+        
+        customerTableBody.addEventListener('click', async (e) => {
+            const button = e.target.closest('button');
+            if(!button) return;
+            
+            const docId = button.closest('tr').dataset.id;
+            
+            if(button.classList.contains('edit-customer-btn')){
+                const doc = await db.collection('customers').doc(docId).get();
+                if(doc.exists){
+                    const data = doc.data();
+                    editingCustomerId = docId;
+                    customerForm['customerName'].value = data.name;
+                    customerForm['customerPhone'].value = data.phone;
+                    customerForm['customerAddress'].value = data.address;
+                    customerForm['customerNotes'].value = data.notes;
+                    document.getElementById('customerModalTitle').textContent = 'تعديل بيانات العميل';
+                    customerModal.style.display = 'flex';
                 }
-            } catch (error) {
-                console.error("خطأ في سداد الدين:", error);
-                alert('حدث خطأ أثناء سداد الدين.');
-            }
-        });
-    }
-
-    function openPayDebtModal(customerId, customerName, customerDebt) {
-        currentPayDebtCustomerId = customerId;
-        document.getElementById('debtCustomerName').textContent = customerName;
-        document.getElementById('currentCustomerDebt').textContent = customerDebt.toFixed(2);
-        document.getElementById('debtAmountToPay').value = ''; // مسح حقل المبلغ المدفوع
-        payDebtModal.style.display = 'flex';
-    }
-
-    // منطق عرض فواتير العميل (هذا مودال وليس صفحة جديدة)
-    const customerInvoicesBody = document.getElementById('customerInvoicesBody');
-    async function openCustomerInvoicesModal(customerId, customerName) {
-        document.getElementById('invoicesCustomerName').textContent = customerName;
-        customerInvoicesBody.innerHTML = '<tr><td colspan="4" class="no-data-row">جارٍ تحميل فواتير العميل...</td></tr>';
-
-        try {
-            const q = db.collection('sales').where('customer', '==', customerId).orderBy('timestamp', 'desc'); // استخدام db.collection().where().orderBy()
-            const snapshot = await q.get(); // استخدام .get()
-
-            customerInvoicesBody.innerHTML = '';
-            if (snapshot.empty) {
-                customerInvoicesBody.innerHTML = '<tr><td colspan="4" class="no-data-row">لا توجد فواتير لهذا العميل.</td></tr>';
-            } else {
-                snapshot.forEach(doc => {
-                    const invoice = doc.data();
-                    const row = customerInvoicesBody.insertRow();
-                    // Timestamp من Firebase يتم تحويله إلى Date object
-                    const invoiceDate = invoice.timestamp ? formatArabicDate(new Date(invoice.timestamp.toDate()).toISOString().split('T')[0]) : 'N/A';
-                    row.innerHTML = `
-                        <td>${invoice.invoiceNumber || 'N/A'}</td>
-                        <td>${invoiceDate}</td>
-                        <td>${(invoice.grandTotal || 0).toFixed(2)} جنيه</td>
-                        <td><button class="btn btn-secondary btn-sm view-invoice-details-btn" data-invoice-id="${doc.id}"><i class="fas fa-info-circle"></i> تفاصيل</button></td>
-                    `;
-                });
-                // هنا يمكن إضافة مستمعات لزر "تفاصيل" لفتح مودال تفاصيل الفاتورة
-            }
-            customerInvoicesModal.style.display = 'flex'; // إظهار المودال
-        } catch (error) {
-            console.error("خطأ في تحميل فواتير العميل:", error);
-            customerInvoicesBody.innerHTML = '<tr><td colspan="4" class="no-data-row" style="color:var(--error-color);">حدث خطأ أثناء تحميل الفواتير.</td></tr>';
-        }
-    }
-
-    // استدعاء تحميل العملاء عند تحميل الصفحة
-    loadCustomers();
-}
-
-// ----------------------------------------------------------------------
-// 9. منطق سجل المبيعات (Sales History Logic) - سيتم تطويره لاحقاً
-// ----------------------------------------------------------------------
-if (currentPageFileName === 'sales_history.html') {
-    console.log("صفحة سجل المبيعات جاهزة، المنطق سيكتب هنا.");
-    // هذا هو المكان المناسب لعرض كل فواتير المبيعات
-    // وربطها بخيارات الفلترة حسب التاريخ
-}
-
-// ----------------------------------------------------------------------
-// 10. منطق ماسح الباركود (QR Scanner Page Logic) - تم تحسينه
-// ----------------------------------------------------------------------
-// هذه الصفحة هي الصفحة المخصصة للماسح الضوئي، وليست المودال العام.
-if (currentPageFileName === 'qr_scanner.html') {
-    console.log("صفحة ماسح الباركود مخصصة جاهزة، المنطق سيكتب هنا.");
-    const qrVideoPage = document.getElementById('qr-video');
-    const scanResultPage = document.getElementById('scan-result');
-    const startScannerBtnPage = document.getElementById('startScannerBtn');
-    const stopScannerBtnPage = document.getElementById('stopScannerBtn');
-    const manualBarcodeInputPage = document.getElementById('manualBarcodeInput');
-    const processManualBarcodeBtnPage = document.getElementById('processManualBarcodeBtn');
-
-    let pageQrScanner = null;
-
-    if (startScannerBtnPage) {
-        startScannerBtnPage.addEventListener('click', async () => {
-            if (!qrVideoPage) {
-                scanResultPage.textContent = 'خطأ: عنصر الفيديو غير موجود.';
-                console.error('Video element #qr-video not found on scanner page.');
-                return;
-            }
-            if (pageQrScanner) { // إذا كان موجوداً، أعد تشغيله
-                 try {
-                    await pageQrScanner.start();
-                    startScannerBtnPage.style.display = 'none';
-                    stopScannerBtnPage.style.display = 'inline-block';
-                    scanResultPage.textContent = 'الماسح جاهز... يرجى توجيه الكاميرا إلى الباركود.';
-                } catch (error) {
-                    console.error("خطأ في بدء الماسح الخاص بالصفحة (موجود):", error);
-                    scanResultPage.textContent = 'لا يمكن بدء الماسح: ' + (error.message || error);
-                }
-                return;
-            }
-
-            // إنشاء ماسح جديد للصفحة
-            try {
-                // QrScanner يجب أن تكون متاحة عالمياً هنا لأنها حملت كسكربت عادي في HTML
-                pageQrScanner = new QrScanner(
-                    qrVideoPage,
-                    result => {
-                        const barcode = result.data;
-                        scanResultPage.textContent = `تم مسح: ${barcode}`;
-                        console.log('Scanned barcode on QR Scanner Page:', barcode);
-                        manualBarcodeInputPage.value = barcode;
-                        // pageQrScanner.stop(); // يمكن إيقاف الماسح بعد أول مسح أو تركه مستمرًا
-                        // startScannerBtnPage.style.display = 'inline-block';
-                        // stopScannerBtnPage.style.display = 'none';
-                    },
-                    {
-                        onDecodeError: error => {
-                            // console.warn(error);
-                        },
-                        highlightScanRegion: true,
-                        highlightCodeOutline: true,
-                    }
-                );
-                await pageQrScanner.start();
-                startScannerBtnPage.style.display = 'none';
-                stopScannerBtnPage.style.display = 'inline-block';
-                scanResultPage.textContent = 'الماسح جاهز... يرجى توجيه الكاميرا إلى الباركود.';
-            } catch (error) {
-                console.error("خطأ في بدء الماسح الخاص بالصفحة (جديد):", error);
-                scanResultPage.textContent = 'لا يمكن بدء الماسح: ' + (error.message || error);
-                if (error.name === 'NotAllowedError') {
-                    scanResultPage.textContent = 'تم رفض الوصول إلى الكاميرا. يرجى السماح بالوصول في إعدادات المتصفح.';
-                } else if (error.name === 'NotFoundError') {
-                    scanResultPage.textContent = 'لم يتم العثور على كاميرا متصلة.';
+            } else if (button.classList.contains('delete-customer-btn')){
+                if (confirm('هل أنت متأكد من حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                    await db.collection('customers').doc(docId).delete();
+                    alert('تم حذف العميل.');
                 }
             }
         });
-    }
+     }
 
-    if (stopScannerBtnPage) {
-        stopScannerBtnPage.addEventListener('click', () => {
-            if (pageQrScanner) {
-                pageQrScanner.stop();
-                startScannerBtnPage.style.display = 'inline-block';
-                stopScannerBtnPage.style.display = 'none';
-                scanResultPage.textContent = 'الماسح متوقف.';
-            }
-        });
-    }
-
-    if (processManualBarcodeBtnPage) {
-        processManualBarcodeBtnPage.addEventListener('click', () => {
-            const barcode = manualBarcodeInputPage.value;
-            if (barcode) {
-                scanResultPage.textContent = `تم إدخال الباركود يدوياً: ${barcode}`;
-                alert(`تم إدخال الباركود يدوياً في صفحة الماسح: ${barcode}.`);
-            } else {
-                alert('يرجى إدخال باركود.');
-            }
-        });
-    }
-
-    // تأكد من إيقاف الماسح عند مغادرة الصفحة أو عند إغلاق المتصفح
-    window.addEventListener('beforeunload', () => {
-        if (pageQrScanner) {
-            pageQrScanner.destroy(); // تحرير موارد الكاميرا
-        }
-    });
-}
+});
