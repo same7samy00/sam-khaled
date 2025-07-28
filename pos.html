@@ -30,13 +30,16 @@
                 <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
 
-            <section class="pos-section" style="display: flex; gap: 20px; flex-grow: 1;">
-                <div class="pos-left-panel" style="flex: 2; background: white; padding: 20px; border-radius: 8px; display: flex; flex-direction: column;">
+            <section class="pos-section">
+                <div class="pos-left-panel">
                     <h3>بحث عن منتج</h3>
-                    <div class="search-product-pos form-group">
-                        <input type="text" id="posProductSearch" placeholder="ابحث باسم المنتج...">
+                    <div class="form-group">
+                        <div class="input-with-btn">
+                             <input type="text" id="posProductSearch" placeholder="ابحث بالاسم أو الباركود...">
+                             <button type="button" class="btn btn-secondary open-scanner-btn" data-target-input="posProductSearch"><i class="fas fa-barcode"></i></button>
+                        </div>
                     </div>
-                    <div id="posSearchResults" style="border: 1px solid #ddd; border-radius: 8px; padding: 10px; min-height: 150px; margin-top: 15px;">
+                    <div id="posSearchResults">
                         <p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>
                     </div>
                     <h3 style="margin-top: 30px;">عناصر الفاتورة</h3>
@@ -45,6 +48,7 @@
                             <thead>
                                 <tr>
                                     <th>المنتج</th>
+                                    <th>الوحدة</th>
                                     <th>الكمية</th>
                                     <th>السعر</th>
                                     <th>الإجمالي</th>
@@ -56,14 +60,22 @@
                     </div>
                 </div>
 
-                <div class="pos-right-panel" style="flex: 1; background: white; padding: 20px; border-radius: 8px;">
+                <div class="pos-right-panel">
                     <h3>ملخص الفاتورة</h3>
+                    <div class="form-group">
+                        <label for="customerSelect">العميل:</label>
+                        <select id="customerSelect"><option value="">عميل نقدي</option></select>
+                    </div>
+                     <div class="form-group">
+                        <label for="paymentType">نوع الدفع:</label>
+                        <select id="paymentType">
+                            <option value="cash">نقدي</option>
+                            <option value="credit">آجل</option>
+                        </select>
+                    </div>
+                    <hr>
                     <div class="invoice-summary">
-                        <p style="display: flex; justify-content: space-between;">الإجمالي الفرعي: <span id="subTotal">0.00</span></p>
-                        <div class="form-group">
-                            <label for="discount">الخصم (مبلغ):</label>
-                            <input type="number" id="discount" value="0" step="0.01" style="text-align: left; direction: ltr;">
-                        </div>
+                        <p style="display: flex; justify-content: space-between;">المجموع: <span id="subTotal">0.00</span></p>
                         <p style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
                             المبلغ المستحق: <span id="grandTotal" style="color: var(--primary-color);">0.00</span>
                         </p>
@@ -75,14 +87,23 @@
             </section>
         </main>
     </div>
+    
+    <div id="globalScannerModal" class="modal">
+        <div class="modal-content small">
+            <span class="close-button">&times;</span>
+            <h3>مسح الباركود</h3>
+            <div class="scanner-area"><video id="global-qr-video"></video></div>
+        </div>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Shared Setup
+        // --- Shared Setup ---
         const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
@@ -94,17 +115,55 @@
         });
         document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-        // POS Logic
+        // --- Scanner Logic ---
+        const scannerModal = document.getElementById('globalScannerModal');
+        const videoEl = document.getElementById('global-qr-video');
+        let scanner = null;
+        let targetInput = null;
+
+        function openScanner(targetInputId) {
+            targetInput = document.getElementById(targetInputId);
+            scannerModal.style.display = 'flex';
+            scanner = new QrScanner(videoEl, result => {
+                if (targetInput) {
+                    targetInput.value = result.data;
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                closeScanner();
+            }, { highlightScanRegion: true, highlightCodeOutline: true });
+            scanner.start().catch(err => { alert("فشل تشغيل الكاميرا."); closeScanner(); });
+        };
+        function closeScanner() {
+            if (scanner) { scanner.stop(); scanner.destroy(); scanner = null; }
+            scannerModal.style.display = 'none';
+        };
+        document.querySelectorAll('.open-scanner-btn').forEach(btn => btn.addEventListener('click', e => openScanner(e.currentTarget.dataset.targetInput)));
+        scannerModal.querySelector('.close-button').addEventListener('click', closeScanner);
+
+        // --- POS Logic ---
         const searchInput = document.getElementById('posProductSearch');
         const searchResults = document.getElementById('posSearchResults');
         const invoiceItemsBody = document.getElementById('invoiceItemsBody');
         const subTotalEl = document.getElementById('subTotal');
-        const discountEl = document.getElementById('discount');
         const grandTotalEl = document.getElementById('grandTotal');
         const completeSaleBtn = document.getElementById('completeSaleBtn');
-        
+        const customerSelect = document.getElementById('customerSelect');
+        const paymentTypeSelect = document.getElementById('paymentType');
+
         let invoiceItems = [];
         let searchTimeout;
+
+        // Load customers into dropdown
+        db.collection('customers').orderBy('name').get().then(snapshot => {
+            snapshot.forEach(doc => {
+                const customer = doc.data();
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = customer.name;
+                option.dataset.debt = customer.currentDebt || 0;
+                customerSelect.appendChild(option);
+            });
+        });
 
         const renderInvoice = () => {
             invoiceItemsBody.innerHTML = '';
@@ -112,7 +171,13 @@
                 const row = invoiceItemsBody.insertRow();
                 row.innerHTML = `
                     <td>${item.name}</td>
-                    <td><input type="number" value="${item.quantity}" min="1" data-index="${index}" style="width: 60px;"></td>
+                    <td>
+                        <select class="unit-select" data-index="${index}">
+                            <option value="box" ${item.unit === 'علبة' ? 'selected' : ''}>علبة</option>
+                            <option value="strip" ${item.unit === 'شريط' ? 'selected' : ''}>شريط</option>
+                        </select>
+                    </td>
+                    <td><input type="number" value="${item.quantity}" min="1" data-index="${index}"></td>
                     <td>${item.price.toFixed(2)}</td>
                     <td>${(item.price * item.quantity).toFixed(2)}</td>
                     <td><button class="btn btn-danger delete-item-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
@@ -122,27 +187,28 @@
         };
 
         const calculateTotals = () => {
-            const subTotal = invoiceItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const discount = parseFloat(discountEl.value) || 0;
-            subTotalEl.textContent = subTotal.toFixed(2);
-            grandTotalEl.textContent = (subTotal - discount).toFixed(2);
+            const total = invoiceItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            subTotalEl.textContent = total.toFixed(2);
+            grandTotalEl.textContent = total.toFixed(2);
         };
         
-        discountEl.addEventListener('input', calculateTotals);
-
-        invoiceItemsBody.addEventListener('input', (e) => {
-            if(e.target.tagName === 'INPUT'){
-                const index = e.target.dataset.index;
-                invoiceItems[index].quantity = parseInt(e.target.value);
-                renderInvoice();
+        invoiceItemsBody.addEventListener('change', (e) => {
+            const index = e.target.dataset.index;
+            const item = invoiceItems[index];
+            if (e.target.classList.contains('unit-select')) {
+                const selectedUnit = e.target.value;
+                item.unit = selectedUnit === 'box' ? 'علبة' : 'شريط';
+                item.price = selectedUnit === 'box' ? item.originalProduct.salePrice_box : item.originalProduct.salePrice_strip;
+            } else if (e.target.tagName === 'INPUT') {
+                item.quantity = parseInt(e.target.value);
             }
+            renderInvoice();
         });
-        
-         invoiceItemsBody.addEventListener('click', (e) => {
+
+        invoiceItemsBody.addEventListener('click', (e) => {
             const btn = e.target.closest('.delete-item-btn');
-            if(btn){
-                const index = btn.dataset.index;
-                invoiceItems.splice(index, 1);
+            if(btn) {
+                invoiceItems.splice(btn.dataset.index, 1);
                 renderInvoice();
             }
         });
@@ -150,28 +216,46 @@
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
             const term = searchInput.value;
-            if (term.length < 2) {
-                searchResults.innerHTML = '<p class="no-data-row">أدخل حرفين على الأقل للبحث.</p>';
-                return;
-            };
+            if (term.length < 2) { searchResults.innerHTML = ''; return; };
             searchTimeout = setTimeout(async () => {
-                const snapshot = await db.collection('products').where('name', '>=', term).where('name', '<=', term + '\uf8ff').limit(5).get();
+                const byBoxBarcode = db.collection('products').where('barcode_box', '==', term).get();
+                const byStripBarcode = db.collection('products').where('barcode_strip', '==', term).get();
+                const [boxResults, stripResults] = await Promise.all([byBoxBarcode, byStripBarcode]);
+                
                 searchResults.innerHTML = '';
-                snapshot.forEach(doc => {
+                const displayProduct = (doc, unit) => {
                     const product = doc.data();
-                    searchResults.innerHTML += `<div style="padding: 10px; border-bottom: 1px solid #eee; display:flex; justify-content: space-between; align-items: center; cursor: pointer;" class="add-item-btn" data-id="${doc.id}" data-name="${product.name}" data-price="${product.price}">
-                        <span>${product.name} (المتاح: ${product.quantity}) - ${product.price.toFixed(2)} جنيه</span>
-                        <button class="btn btn-primary"><i class="fas fa-plus"></i></button>
-                    </div>`;
-                });
+                    const resultDiv = document.createElement('div');
+                    resultDiv.className = 'add-item-btn';
+                    resultDiv.dataset.id = doc.id;
+                    resultDiv.dataset.unit = unit;
+                    resultDiv.innerHTML = `<span>${product.name} - ${unit}</span>`;
+                    searchResults.appendChild(resultDiv);
+                };
+
+                boxResults.forEach(doc => displayProduct(doc, 'علبة'));
+                stripResults.forEach(doc => displayProduct(doc, 'شريط'));
+
             }, 300);
         });
 
-        searchResults.addEventListener('click', (e) => {
+        searchResults.addEventListener('click', async (e) => {
             const itemDiv = e.target.closest('.add-item-btn');
             if(itemDiv){
-                const newItem = { id: itemDiv.dataset.id, name: itemDiv.dataset.name, price: parseFloat(itemDiv.dataset.price), quantity: 1 };
-                const existingItem = invoiceItems.find(item => item.id === newItem.id);
+                const docSnap = await db.collection('products').doc(itemDiv.dataset.id).get();
+                const product = docSnap.data();
+                const unit = itemDiv.dataset.unit;
+
+                const newItem = {
+                    productId: docSnap.id,
+                    name: product.name,
+                    unit: unit,
+                    quantity: 1,
+                    price: unit === 'علبة' ? product.salePrice_box : product.salePrice_strip,
+                    originalProduct: product
+                };
+                
+                const existingItem = invoiceItems.find(item => item.productId === newItem.productId && item.unit === newItem.unit);
                 if (existingItem) { existingItem.quantity++; } 
                 else { invoiceItems.push(newItem); }
                 renderInvoice();
@@ -180,48 +264,54 @@
 
         completeSaleBtn.addEventListener('click', async () => {
             if(invoiceItems.length === 0) return alert('الفاتورة فارغة!');
-            const batch = db.batch();
+            if(paymentTypeSelect.value === 'credit' && !customerSelect.value) return alert('يرجى اختيار عميل للبيع الآجل.');
+
+            const grandTotal = parseFloat(grandTotalEl.textContent);
             const saleData = {
-                items: invoiceItems,
-                grandTotal: parseFloat(grandTotalEl.textContent),
-                discount: parseFloat(discountEl.value) || 0,
+                items: invoiceItems.map(i => ({ productId: i.productId, name: i.name, unit: i.unit, quantity: i.quantity, price: i.price })),
+                grandTotal: grandTotal,
+                paymentType: paymentTypeSelect.value,
+                customerId: customerSelect.value || null,
+                customerName: customerSelect.value ? customerSelect.options[customerSelect.selectedIndex].text : 'عميل نقدي',
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
-            let allQuantitiesAvailable = true;
             
-            const productChecks = invoiceItems.map(item => db.collection('products').doc(item.id).get());
-            const productDocs = await Promise.all(productChecks);
-
-            for (let i = 0; i < productDocs.length; i++) {
-                const doc = productDocs[i];
-                const item = invoiceItems[i];
-                if (!doc.exists || doc.data().quantity < item.quantity) {
-                    alert(`الكمية غير كافية للمنتج: ${item.name}. المتاح: ${doc.data().quantity || 0}`);
-                    allQuantitiesAvailable = false;
-                    break;
-                }
-            }
-            if(!allQuantitiesAvailable) return;
-            
-            invoiceItems.forEach(item => {
-                const productRef = db.collection('products').doc(item.id);
-                batch.update(productRef, { quantity: firebase.firestore.FieldValue.increment(-item.quantity) });
-            });
-
-            const saleRef = db.collection('sales').doc();
-            batch.set(saleRef, saleData);
-
             try {
-                await batch.commit();
+                await db.runTransaction(async (transaction) => {
+                    // 1. Check stock and prepare updates
+                    for (const item of invoiceItems) {
+                        const productRef = db.collection('products').doc(item.productId);
+                        const productDoc = await transaction.get(productRef);
+                        if (!productDoc.exists) throw new Error(`المنتج ${item.name} غير موجود!`);
+
+                        const currentStockStrips = productDoc.data().stock_strips;
+                        const stripsToSell = item.unit === 'علبة' ? item.quantity * item.originalProduct.unitsPerBox : item.quantity;
+                        if(currentStockStrips < stripsToSell) throw new Error(`الكمية غير كافية للمنتج: ${item.name}`);
+                        
+                        const newStripCount = currentStockStrips - stripsToSell;
+                        const newBoxCount = Math.floor(newStripCount / item.originalProduct.unitsPerBox);
+                        transaction.update(productRef, { stock_strips: newStripCount, stock_boxes: newBoxCount });
+                    }
+
+                    // 2. Update customer debt if sale is on credit
+                    if (saleData.paymentType === 'credit') {
+                        const customerRef = db.collection('customers').doc(saleData.customerId);
+                        transaction.update(customerRef, { currentDebt: firebase.firestore.FieldValue.increment(grandTotal) });
+                    }
+
+                    // 3. Create sale record
+                    const saleRef = db.collection('sales').doc();
+                    transaction.set(saleRef, saleData);
+                });
+
                 alert('تم البيع بنجاح!');
                 invoiceItems = [];
                 renderInvoice();
-                discountEl.value = 0;
                 searchInput.value = '';
                 searchResults.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>';
             } catch (error) {
                 console.error("Sale failed: ", error);
-                alert('فشل إتمام البيع.');
+                alert(`فشل إتمام البيع: ${error.message}`);
             }
         });
     });

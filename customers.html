@@ -36,7 +36,7 @@
                         <tr>
                             <th>الاسم</th>
                             <th>الهاتف</th>
-                            <th>العنوان</th>
+                            <th>الديون الحالية</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -60,8 +60,22 @@
             </form>
         </div>
     </div>
+    
+    <div id="payDebtModal" class="modal">
+        <div class="modal-content small">
+            <span class="close-button">&times;</span>
+            <h3 id="payDebtModalTitle">سداد دين</h3>
+            <form id="payDebtForm">
+                <div class="form-group">
+                    <label for="debtAmountToPay">المبلغ المدفوع:</label>
+                    <input type="number" id="debtAmountToPay" step="0.01" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">تأكيد السداد</button>
+            </form>
+        </div>
+    </div>
 
-     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
 
@@ -75,16 +89,15 @@
             auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
+            // --- Customer Modal Logic ---
             const customerModal = document.getElementById('customerModal');
             const addCustomerBtn = document.getElementById('addCustomerBtn');
             const customerForm = document.getElementById('customerForm');
-            const customerTableBody = document.getElementById('customerTableBody');
-            const modalTitle = document.getElementById('modalTitle');
             let editingCustomerId = null;
-
-            const openModal = (id = null, data = {}) => {
+            
+            const openCustomerModal = (id = null, data = {}) => {
                 editingCustomerId = id;
-                modalTitle.textContent = id ? 'تعديل بيانات العميل' : 'إضافة عميل جديد';
+                customerModal.querySelector('#modalTitle').textContent = id ? 'تعديل بيانات العميل' : 'إضافة عميل جديد';
                 customerForm.reset();
                 if (id) {
                     customerForm.customerName.value = data.name || '';
@@ -93,10 +106,9 @@
                 }
                 customerModal.style.display = 'flex';
             };
-            const closeModal = () => customerModal.style.display = 'none';
-
-            addCustomerBtn.addEventListener('click', () => openModal());
-            customerModal.querySelector('.close-button').addEventListener('click', closeModal);
+            const closeCustomerModal = () => customerModal.style.display = 'none';
+            addCustomerBtn.addEventListener('click', () => openCustomerModal());
+            customerModal.querySelector('.close-button').addEventListener('click', closeCustomerModal);
 
             customerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -105,12 +117,46 @@
                     if (editingCustomerId) {
                         await db.collection('customers').doc(editingCustomerId).update(customerData);
                     } else {
-                        await db.collection('customers').add(customerData);
+                        await db.collection('customers').add({ ...customerData, currentDebt: 0 });
                     }
-                    closeModal();
+                    closeCustomerModal();
                 } catch (error) { console.error("Error saving customer:", error); }
             });
+            
+            // --- Pay Debt Modal Logic ---
+            const payDebtModal = document.getElementById('payDebtModal');
+            const payDebtForm = document.getElementById('payDebtForm');
+            let payingDebtForCustomerId = null;
+            
+            const openPayDebtModal = (id, name) => {
+                payingDebtForCustomerId = id;
+                payDebtModal.querySelector('#payDebtModalTitle').textContent = `سداد دين: ${name}`;
+                payDebtForm.reset();
+                payDebtModal.style.display = 'flex';
+            };
+            const closePayDebtModal = () => payDebtModal.style.display = 'none';
+            payDebtModal.querySelector('.close-button').addEventListener('click', closePayDebtModal);
 
+            payDebtForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const amount = parseFloat(payDebtForm.debtAmountToPay.value);
+                if (isNaN(amount) || amount <= 0) return alert("الرجاء إدخال مبلغ صحيح.");
+
+                try {
+                    const customerRef = db.collection('customers').doc(payingDebtForCustomerId);
+                    await db.runTransaction(async (transaction) => {
+                         const customerDoc = await transaction.get(customerRef);
+                         if(!customerDoc.exists) throw new Error("العميل غير موجود!");
+                         const newDebt = (customerDoc.data().currentDebt || 0) - amount;
+                         transaction.update(customerRef, { currentDebt: newDebt });
+                    });
+                    alert("تم تسجيل السداد بنجاح.");
+                    closePayDebtModal();
+                } catch (error) { console.error("Error paying debt:", error); alert(`فشل: ${error.message}`); }
+            });
+
+            // --- Table Rendering and Events ---
+            const customerTableBody = document.getElementById('customerTableBody');
             db.collection('customers').orderBy('name').onSnapshot(snapshot => {
                 customerTableBody.innerHTML = '';
                 if(snapshot.empty) {
@@ -123,8 +169,9 @@
                     row.innerHTML = `
                         <td>${customer.name}</td>
                         <td>${customer.phone || 'N/A'}</td>
-                        <td>${customer.address || 'N/A'}</td>
+                        <td>${(customer.currentDebt || 0).toFixed(2)}</td>
                         <td class="actions-cell">
+                            <button class="btn btn-secondary pay-debt-btn" data-id="${doc.id}" data-name="${customer.name}"><i class="fas fa-money-bill-wave"></i> سداد</button>
                             <button class="btn btn-primary edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-danger delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
                         </td>
@@ -139,11 +186,13 @@
                 
                 if(button.classList.contains('edit-btn')) {
                     const docSnap = await db.collection('customers').doc(id).get();
-                    openModal(id, docSnap.data());
+                    openCustomerModal(id, docSnap.data());
                 } else if (button.classList.contains('delete-btn')) {
-                    if(confirm('هل أنت متأكد من الحذف؟')) {
+                    if(confirm('هل أنت متأكد من الحذف؟ سيتم حذف العميل وكل ديونه.')) {
                         await db.collection('customers').doc(id).delete();
                     }
+                } else if (button.classList.contains('pay-debt-btn')) {
+                    openPayDebtModal(id, button.dataset.name);
                 }
             });
         });

@@ -36,42 +36,33 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. Firebase Configuration
             const firebaseConfig = {
                 apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg",
                 authDomain: "pharmacy-6cc74.firebaseapp.com",
                 projectId: "pharmacy-6cc74",
-                storageBucket: "pharmacy-6cc74.firebasestorage.app",
-                messagingSenderId: "1754889135",
-                appId: "1:1754889135:web:f678d7b103b62dbde68d5a"
             };
-
             const app = firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
 
-            // 2. Auth State and Redirection
             auth.onAuthStateChanged(user => {
                 if (user) {
                     window.location.href = 'index.html';
                 }
             });
 
-            // 3. Login Form Logic
             const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    const email = loginForm['username'].value;
-                    const password = loginForm['password'].value;
-                    const loginMessage = document.getElementById('loginMessage');
-                    try {
-                        await auth.signInWithEmailAndPassword(email, password);
-                    } catch (error) {
-                        loginMessage.textContent = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
-                        loginMessage.style.display = 'block';
-                    }
-                });
-            }
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = loginForm['username'].value;
+                const password = loginForm['password'].value;
+                const loginMessage = document.getElementById('loginMessage');
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                } catch (error) {
+                    loginMessage.textContent = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
+                    loginMessage.style.display = 'block';
+                }
+            });
         });
     </script>
 </body>

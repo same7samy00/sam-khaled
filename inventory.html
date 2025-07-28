@@ -35,8 +35,11 @@
                     <thead>
                         <tr>
                             <th>الاسم التجاري</th>
-                            <th>السعر</th>
-                            <th>الكمية</th>
+                            <th>المورد</th>
+                            <th>كمية العلب</th>
+                            <th>سعر بيع العلبة</th>
+                            <th>سعر بيع الشريط</th>
+                            <th>تاريخ الصلاحية</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -52,24 +55,58 @@
             <h3 id="modalTitle">إضافة منتج جديد</h3>
             <form id="productForm">
                 <div class="form-row">
-                    <div class="form-group"><label for="productName">الاسم التجاري:</label><input type="text" id="productName" required></div>
-                    <div class="form-group"><label for="productPrice">السعر:</label><input type="number" id="productPrice" step="0.01" required></div>
+                    <div class="form-group"><label for="name">الاسم التجاري:</label><input type="text" id="name" required></div>
+                    <div class="form-group"><label for="supplier">المورد:</label><input type="text" id="supplier"></div>
                 </div>
+                 <hr style="margin: 15px 0; border-color: #eee;">
                 <div class="form-row">
-                     <div class="form-group"><label for="productQuantity">الكمية:</label><input type="number" id="productQuantity" required></div>
+                    <div class="form-group">
+                        <label for="barcode_box">باركود العلبة:</label>
+                        <div class="input-with-btn">
+                            <input type="text" id="barcode_box">
+                            <button type="button" class="btn btn-secondary open-scanner-btn" data-target-input="barcode_box"><i class="fas fa-barcode"></i></button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="barcode_strip">باركود الشريط (اختياري):</label>
+                        <div class="input-with-btn">
+                            <input type="text" id="barcode_strip">
+                            <button type="button" class="btn btn-secondary open-scanner-btn" data-target-input="barcode_strip"><i class="fas fa-barcode"></i></button>
+                        </div>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">حفظ</button>
+                 <hr style="margin: 15px 0; border-color: #eee;">
+                <div class="form-row">
+                    <div class="form-group"><label for="salePrice_box">سعر بيع العلبة:</label><input type="number" id="salePrice_box" step="0.01" required></div>
+                    <div class="form-group"><label for="salePrice_strip">سعر بيع الشريط:</label><input type="number" id="salePrice_strip" step="0.01" required></div>
+                    <div class="form-group"><label for="unitsPerBox">عدد الشرائط بالعلبة:</label><input type="number" id="unitsPerBox" required></div>
+                </div>
+                 <hr style="margin: 15px 0; border-color: #eee;">
+                <div class="form-row">
+                     <div class="form-group"><label for="stock_boxes">الكمية (عدد العلب):</label><input type="number" id="stock_boxes" required></div>
+                     <div class="form-group"><label for="expiryDate">تاريخ الصلاحية:</label><input type="date" id="expiryDate" required></div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">حفظ المنتج</button>
             </form>
         </div>
     </div>
+    
+    <div id="globalScannerModal" class="modal">
+        <div class="modal-content small">
+            <span class="close-button">&times;</span>
+            <h3>مسح الباركود</h3>
+            <div class="scanner-area"><video id="global-qr-video"></video></div>
+        </div>
+    </div>
 
-     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Firebase and Auth setup
+            // --- Shared Setup ---
             const firebaseConfig = { apiKey: "AIzaSyAtePw7SP1R2POlPP9_Ot-YLNn0GQlebDg", authDomain: "pharmacy-6cc74.firebaseapp.com", projectId: "pharmacy-6cc74" };
             const app = firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
@@ -78,7 +115,43 @@
             auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-            // Page specific logic
+            // --- Scanner Logic ---
+            const scannerModal = document.getElementById('globalScannerModal');
+            const videoEl = document.getElementById('global-qr-video');
+            let scanner = null;
+            let targetInput = null;
+
+            function openScanner(targetInputId) {
+                targetInput = document.getElementById(targetInputId);
+                scannerModal.style.display = 'flex';
+                scanner = new QrScanner(videoEl, result => {
+                    if (targetInput) {
+                        targetInput.value = result.data;
+                    }
+                    closeScanner();
+                }, { highlightScanRegion: true, highlightCodeOutline: true });
+                scanner.start().catch(err => {
+                    alert("فشل تشغيل الكاميرا. يرجى منح الأذونات اللازمة.");
+                    console.error(err);
+                    closeScanner();
+                });
+            };
+            
+            function closeScanner() {
+                if (scanner) {
+                    scanner.stop();
+                    scanner.destroy();
+                    scanner = null;
+                }
+                scannerModal.style.display = 'none';
+            };
+
+            document.querySelectorAll('.open-scanner-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => openScanner(e.currentTarget.dataset.targetInput));
+            });
+            scannerModal.querySelector('.close-button').addEventListener('click', closeScanner);
+
+            // --- Page specific logic ---
             const productModal = document.getElementById('productModal');
             const addProductBtn = document.getElementById('addProductBtn');
             const productForm = document.getElementById('productForm');
@@ -91,9 +164,9 @@
                 modalTitle.textContent = id ? 'تعديل المنتج' : 'إضافة منتج جديد';
                 productForm.reset();
                 if (id) {
-                    productForm.productName.value = data.name || '';
-                    productForm.productPrice.value = data.price || '';
-                    productForm.productQuantity.value = data.quantity || '';
+                    Object.keys(data).forEach(key => {
+                        if(productForm[key]) productForm[key].value = data[key];
+                    });
                 }
                 productModal.style.display = 'flex';
             };
@@ -104,10 +177,19 @@
 
             productForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const stockBoxes = parseInt(productForm.stock_boxes.value);
+                const unitsPerBox = parseInt(productForm.unitsPerBox.value);
                 const productData = {
-                    name: productForm.productName.value,
-                    price: parseFloat(productForm.productPrice.value),
-                    quantity: parseInt(productForm.productQuantity.value),
+                    name: productForm.name.value,
+                    supplier: productForm.supplier.value,
+                    barcode_box: productForm.barcode_box.value,
+                    barcode_strip: productForm.barcode_strip.value,
+                    salePrice_box: parseFloat(productForm.salePrice_box.value),
+                    salePrice_strip: parseFloat(productForm.salePrice_strip.value),
+                    unitsPerBox: unitsPerBox,
+                    stock_boxes: stockBoxes,
+                    stock_strips: stockBoxes * unitsPerBox, // Calculated total strips
+                    expiryDate: productForm.expiryDate.value,
                 };
                 try {
                     if (editingProductId) {
@@ -116,22 +198,25 @@
                         await db.collection('products').add(productData);
                     }
                     closeModal();
-                } catch (error) { console.error("Error saving product:", error); }
+                } catch (error) { console.error("Error saving product:", error); alert("خطأ في حفظ المنتج") }
             });
 
             db.collection('products').orderBy('name').onSnapshot(snapshot => {
                 productTableBody.innerHTML = '';
                 if(snapshot.empty) {
-                    productTableBody.innerHTML = '<tr><td colspan="4" class="no-data-row">لا توجد منتجات.</td></tr>';
+                    productTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row">لا توجد منتجات.</td></tr>';
                     return;
                 }
                 snapshot.forEach(doc => {
-                    const product = doc.data();
+                    const p = doc.data();
                     const row = productTableBody.insertRow();
                     row.innerHTML = `
-                        <td>${product.name}</td>
-                        <td>${product.price.toFixed(2)}</td>
-                        <td>${product.quantity}</td>
+                        <td>${p.name}</td>
+                        <td>${p.supplier || 'N/A'}</td>
+                        <td>${p.stock_boxes}</td>
+                        <td>${p.salePrice_box.toFixed(2)}</td>
+                        <td>${p.salePrice_strip.toFixed(2)}</td>
+                        <td>${p.expiryDate}</td>
                         <td class="actions-cell">
                             <button class="btn btn-primary edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-danger delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>

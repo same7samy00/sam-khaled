@@ -36,9 +36,9 @@
                         <tr>
                             <th>رقم الفاتورة</th>
                             <th>التاريخ</th>
+                            <th>العميل</th>
+                            <th>نوع الدفع</th>
                             <th>الإجمالي</th>
-                            <th>الخصم</th>
-                            <th>عدد الأصناف</th>
                         </tr>
                     </thead>
                     <tbody id="salesTableBody"></tbody>
@@ -83,9 +83,9 @@
                     row.innerHTML = `
                         <td>${doc.id}</td>
                         <td>${formatDate(sale.timestamp)}</td>
+                        <td>${sale.customerName || 'عميل نقدي'}</td>
+                        <td>${sale.paymentType === 'credit' ? 'آجل' : 'نقدي'}</td>
                         <td>${sale.grandTotal.toFixed(2)}</td>
-                        <td>${(sale.discount || 0).toFixed(2)}</td>
-                        <td>${sale.items.length}</td>
                     `;
                 });
             });

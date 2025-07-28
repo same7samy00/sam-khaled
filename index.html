@@ -35,21 +35,28 @@
                     <div class="card-icon" style="font-size: 24px; color: var(--primary-color); margin-left: 15px;"><i class="fas fa-dollar-sign"></i></div>
                     <div class="card-info">
                         <h3>إجمالي مبيعات اليوم</h3>
-                        <p class="card-value" id="todaySales" style="font-size: 24px; font-weight: bold;">0.00 جنيه</p>
+                        <p id="todaySales" style="font-size: 24px; font-weight: bold;">0.00 جنيه</p>
                     </div>
                 </div>
                 <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
                     <div class="card-icon" style="font-size: 24px; color: var(--primary-color); margin-left: 15px;"><i class="fas fa-file-invoice"></i></div>
                     <div class="card-info">
                         <h3>عدد فواتير اليوم</h3>
-                        <p class="card-value" id="todayInvoices" style="font-size: 24px; font-weight: bold;">0</p>
+                        <p id="todayInvoices" style="font-size: 24px; font-weight: bold;">0</p>
                     </div>
                 </div>
                 <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
                     <div class="card-icon" style="font-size: 24px; color: var(--error-color); margin-left: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
                     <div class="card-info">
                         <h3>منتجات منخفضة المخزون</h3>
-                        <p class="card-value" id="lowStockCount" style="font-size: 24px; font-weight: bold;">0</p>
+                        <p id="lowStockCount" style="font-size: 24px; font-weight: bold;">0</p>
+                    </div>
+                </div>
+                 <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
+                    <div class="card-icon" style="font-size: 24px; color: #f39c12; margin-left: 15px;"><i class="fas fa-hourglass-end"></i></div>
+                    <div class="card-info">
+                        <h3>منتجات قرب انتهاء الصلاحية</h3>
+                        <p id="expiringCount" style="font-size: 24px; font-weight: bold;">0</p>
                     </div>
                 </div>
             </section>
@@ -70,31 +77,44 @@
             auth.onAuthStateChanged(user => {
                 if (user) {
                     document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
+                    loadDashboardData();
                 } else {
                     window.location.href = 'login.html';
                 }
             });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
-            // Dashboard Logic
-            const todaySalesEl = document.getElementById('todaySales');
-            const todayInvoicesEl = document.getElementById('todayInvoices');
-            const lowStockCountEl = document.getElementById('lowStockCount');
+            function loadDashboardData() {
+                const todaySalesEl = document.getElementById('todaySales');
+                const todayInvoicesEl = document.getElementById('todayInvoices');
+                const lowStockCountEl = document.getElementById('lowStockCount');
+                const expiringCountEl = document.getElementById('expiringCount');
 
-            // Today's Sales
-            const startOfDay = new Date();
-            startOfDay.setHours(0, 0, 0, 0);
-            db.collection('sales').where('timestamp', '>=', startOfDay).onSnapshot(snap => {
-                let totalSales = 0;
-                snap.forEach(doc => totalSales += doc.data().grandTotal || 0);
-                if(todaySalesEl) todaySalesEl.textContent = `${totalSales.toFixed(2)} جنيه`;
-                if(todayInvoicesEl) todayInvoicesEl.textContent = snap.size;
-            });
+                // Today's Sales
+                const startOfDay = new Date();
+                startOfDay.setHours(0, 0, 0, 0);
+                db.collection('sales').where('timestamp', '>=', startOfDay).onSnapshot(snap => {
+                    let totalSales = 0;
+                    snap.forEach(doc => totalSales += doc.data().grandTotal || 0);
+                    if(todaySalesEl) todaySalesEl.textContent = `${totalSales.toFixed(2)} جنيه`;
+                    if(todayInvoicesEl) todayInvoicesEl.textContent = snap.size;
+                });
 
-            // Low Stock
-            db.collection('products').where('quantity', '<=', 10).onSnapshot(snap => {
-                if(lowStockCountEl) lowStockCountEl.textContent = snap.size;
-            });
+                // Low Stock
+                db.collection('products').where('stock_boxes', '<=', 5).onSnapshot(snap => {
+                    if(lowStockCountEl) lowStockCountEl.textContent = snap.size;
+                });
+                
+                // Expiring Soon (in next 90 days)
+                const soonDate = new Date();
+                soonDate.setDate(soonDate.getDate() + 90);
+                const todayStr = new Date().toISOString().split('T')[0];
+                const soonDateStr = soonDate.toISOString().split('T')[0];
+
+                db.collection('products').where('expiryDate', '>=', todayStr).where('expiryDate', '<=', soonDateStr).get().then(snap => {
+                     if(expiringCountEl) expiringCountEl.textContent = snap.size;
+                });
+            }
         });
     </script>
 </body>
