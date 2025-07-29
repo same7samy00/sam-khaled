@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -201,7 +201,7 @@
                 targetInput = document.getElementById(targetInputId);
                 scannerModal.style.display = 'flex';
                 // Request camera permission when modal is opened
-                navigator.mediaDevices.getUserMedia({ video: true })
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }) // Prefer rear camera
                     .then((stream) => {
                         videoEl.srcObject = stream;
                         scanner = new QrScanner(videoEl, result => {
@@ -263,13 +263,24 @@
                 if (isNaN(salePriceBox) || salePriceBox <= 0) return;
 
                 // Calculate strip price if not provided or 0
-                if (unitsPerBox > 0 && (isNaN(parseFloat(salePriceStripInput.value)) || parseFloat(salePriceStripInput.value) === 0)) {
-                    salePriceStripInput.value = (salePriceBox / unitsPerBox).toFixed(2);
+                if (unitsPerBox > 0) {
+                    const calculatedStripPrice = (salePriceBox / unitsPerBox);
+                    if (isNaN(parseFloat(salePriceStripInput.value)) || parseFloat(salePriceStripInput.value) === 0 || !editingProductId) { // Only set if empty or editing new product
+                        salePriceStripInput.value = calculatedStripPrice.toFixed(2);
+                    }
+                } else {
+                    salePriceStripInput.value = ''; // Clear if unitsPerBox is not valid
                 }
 
+
                 // Calculate unit price if not provided or 0
-                if (unitsPerBox > 0 && unitsPerStrip > 0 && (isNaN(parseFloat(salePriceUnitInput.value)) || parseFloat(salePriceUnitInput.value) === 0)) {
-                    salePriceUnitInput.value = (salePriceBox / unitsPerBox / unitsPerStrip).toFixed(2);
+                if (unitsPerBox > 0 && unitsPerStrip > 0) {
+                    const calculatedUnitPrice = (salePriceBox / unitsPerBox / unitsPerStrip);
+                    if (isNaN(parseFloat(salePriceUnitInput.value)) || parseFloat(salePriceUnitInput.value) === 0 || !editingProductId) { // Only set if empty or editing new product
+                        salePriceUnitInput.value = calculatedUnitPrice.toFixed(2);
+                    }
+                } else {
+                    salePriceUnitInput.value = ''; // Clear if unitsPerStrip is not valid
                 }
             }
 
@@ -282,16 +293,17 @@
                 editingProductId = id;
                 modalTitle.textContent = id ? 'تعديل المنتج' : 'إضافة منتج جديد';
                 productForm.reset();
-                // Clear auto-calculated fields explicitly if they are not set manually
+                
+                // Clear auto-calculated fields explicitly before populating for editing
                 salePriceStripInput.value = '';
                 salePriceUnitInput.value = '';
 
                 if (id) {
                     Object.keys(data).forEach(key => {
                         if(productForm[key]) {
-                            // Special handling for number inputs to avoid "0" if undefined
-                            if (typeof data[key] === 'number' && data[key] === 0 && (key === 'salePrice_strip' || key === 'salePrice_unit')) {
-                                productForm[key].value = ''; // Set to empty string if 0, allowing auto-calculation
+                            // Special handling for number inputs to avoid "0" if undefined or 0 (allowing auto-calculation)
+                            if (typeof data[key] === 'number' && (key === 'salePrice_strip' || key === 'salePrice_unit')) {
+                                productForm[key].value = data[key] > 0 ? data[key] : ''; // Only set if > 0, otherwise empty for auto-calc
                             } else {
                                 productForm[key].value = data[key];
                             }
@@ -324,7 +336,8 @@
                     return;
                 }
 
-                calculateDerivedPrices(); // Ensure derived prices are calculated before saving
+                // Ensure derived prices are calculated before saving if they are empty
+                calculateDerivedPrices(); 
 
                 const stockBoxes = parseInt(productForm.stock_boxes.value);
                 const unitsPerBox = parseInt(productForm.unitsPerBox.value);
@@ -338,9 +351,8 @@
                     barcode_strip: productForm.barcode_strip.value,
                     barcode_unit: productForm.barcode_unit.value,
                     salePrice_box: parseFloat(productForm.salePrice_box.value),
-                    // Use parseFloat or 0 if empty/invalid for derived prices
-                    salePrice_strip: parseFloat(productForm.salePrice_strip.value) || 0, 
-                    salePrice_unit: parseFloat(productForm.salePrice_unit.value) || 0,
+                    salePrice_strip: parseFloat(productForm.salePrice_strip.value) || 0, // Use || 0 if empty/invalid for derived prices
+                    salePrice_unit: parseFloat(productForm.salePrice_unit.value) || 0, // Use || 0 if empty/invalid
                     unitsPerBox: unitsPerBox,
                     unitsPerStrip: unitsPerStrip,
                     stock_boxes: stockBoxes,
