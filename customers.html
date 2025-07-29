@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -189,4 +189,92 @@
                 payDebtModal.style.display = 'flex';
             };
             const closePayDebtModal = () => payDebtModal.style.display = 'none';
-            payDebtModal.querySelector('.close-button').addEventListener('click', closePayDebt
+            payDebtModal.querySelector('.close-button').addEventListener('click', closePayDebtModal);
+
+            payDebtForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const amount = parseFloat(payDebtForm.debtAmountToPay.value);
+                if (isNaN(amount) || amount <= 0) {
+                    showToast("الرجاء إدخال مبلغ صحيح وموجب.", 'error');
+                    return;
+                }
+
+                try {
+                    const customerRef = db.collection('customers').doc(payingDebtForCustomerId);
+                    await db.runTransaction(async (transaction) => {
+                         const customerDoc = await transaction.get(customerRef);
+                         if(!customerDoc.exists) throw new Error("العميل غير موجود!");
+                         const currentDebt = customerDoc.data().currentDebt || 0;
+                         if (amount > currentDebt) {
+                             throw new Error("المبلغ المدفوع أكبر من الدين المستحق.");
+                         }
+                         const newDebt = currentDebt - amount;
+                         transaction.update(customerRef, { currentDebt: newDebt });
+                    });
+                    showToast("تم تسجيل السداد بنجاح.", 'success');
+                    closePayDebtModal();
+                } catch (error) { 
+                    console.error("Error paying debt:", error); 
+                    showToast(`فشل سداد الدين: ${error.message}`, 'error');
+                }
+            });
+
+            // --- Table Rendering and Events ---
+            const customerTableBody = document.getElementById('customerTableBody');
+            db.collection('customers').orderBy('name').onSnapshot(snapshot => {
+                customerTableBody.innerHTML = '';
+                if(snapshot.empty) {
+                    customerTableBody.innerHTML = '<tr><td colspan="4" class="no-data-row">لا يوجد عملاء.</td></tr>';
+                    return;
+                }
+                snapshot.forEach(doc => {
+                    const customer = doc.data();
+                    const row = customerTableBody.insertRow();
+                    const currentDebt = customer.currentDebt !== undefined ? customer.currentDebt : 0;
+                    row.innerHTML = `
+                        <td>${customer.name}</td>
+                        <td>${customer.phone || 'N/A'}</td>
+                        <td>${currentDebt.toFixed(2)}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-secondary pay-debt-btn" data-id="${doc.id}" data-name="${customer.name}" ${currentDebt <= 0 ? 'disabled' : ''}><i class="fas fa-money-bill-wave"></i> سداد</button>
+                            <button class="btn btn-primary edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-danger delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
+                        </td>
+                    `;
+                });
+            });
+
+            customerTableBody.addEventListener('click', async (e) => {
+                const button = e.target.closest('button');
+                if(!button) return;
+                const id = button.dataset.id;
+                
+                if(button.classList.contains('edit-btn')) {
+                    const docSnap = await db.collection('customers').doc(id).get();
+                    if(docSnap.exists) {
+                       openCustomerModal(id, docSnap.data());
+                    } else {
+                        showToast('العميل غير موجود.', 'error');
+                    }
+                } else if (button.classList.contains('delete-btn')) {
+                    if(confirm('هل أنت متأكد من الحذف؟ سيتم حذف العميل وكل ديونه.')) {
+                        try {
+                            await db.collection('customers').doc(id).delete();
+                            showToast('تم حذف العميل بنجاح!', 'success');
+                        } catch (error) {
+                            console.error("Error deleting customer:", error);
+                            showToast("خطأ في حذف العميل: " + error.message, 'error');
+                        }
+                    }
+                } else if (button.classList.contains('pay-debt-btn')) {
+                    if (button.disabled) {
+                        showToast('لا يوجد دين لهذا العميل لسداده.', 'info');
+                        return;
+                    }
+                    openPayDebtModal(id, button.dataset.name);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
