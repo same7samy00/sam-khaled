@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body>
     <div class="container">
@@ -19,6 +20,7 @@
                     <li><a href="pos.html"><i class="fas fa-cash-register"></i> نقطة البيع</a></li>
                     <li class="active"><a href="sales_history.html"><i class="fas fa-history"></i> سجل المبيعات</a></li>
                     <li><a href="customers.html"><i class="fas fa-users"></i> إدارة العملاء</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a></li>
                     <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
                 </ul>
             </nav>
@@ -49,9 +51,18 @@
         </main>
     </div>
 
+    <nav class="mobile-nav-bar">
+        <a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
+        <a href="inventory.html"><i class="fas fa-box-open"></i> المنتجات</a>
+        <a href="pos.html"><i class="fas fa-cash-register"></i> البيع</a>
+        <a href="sales_history.html" class="active"><i class="fas fa-history"></i> المبيعات</a>
+        <a href="customers.html"><i class="fas fa-users"></i> العملاء</a>
+    </nav>
+
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -60,9 +71,30 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
+            // Function to show Toastify notifications
+            function showToast(message, type = 'info') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    newWindow: true,
+                    close: true,
+                    gravity: "top", // `top` or `bottom`
+                    position: "center", // `left`, `center` or `right`
+                    stopOnFocus: true, // Prevents dismissing on hover
+                    className: `on-${type}`, // Custom class for styling
+                    onClick: function(){} // Callback after click
+                }).showToast();
+            }
+
             // Mobile menu toggle logic
             const menuToggle = document.getElementById('menuToggle');
             const sidebar = document.querySelector('.sidebar');
+            const mobileNavBar = document.querySelector('.mobile-nav-bar');
+
+            if (mobileNavBar) {
+                document.body.classList.add('has-mobile-nav');
+            }
+
             if (menuToggle) {
                 menuToggle.addEventListener('click', () => {
                     sidebar.classList.toggle('open');
@@ -92,7 +124,7 @@
             db.collection('sales').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
                 salesTableBody.innerHTML = '';
                 if(snapshot.empty) {
-                    salesTableBody.innerHTML = '<tr><td colspan="6" class="no-data-row">لا يوجد مبيعات مسجلة.</td></tr>'; // Updated colspan
+                    salesTableBody.innerHTML = '<tr><td colspan="6" class="no-data-row">لا يوجد مبيعات مسجلة.</td></tr>';
                     return;
                 }
                 snapshot.forEach(doc => {
@@ -103,7 +135,7 @@
                         <td>${formatDate(sale.timestamp)}</td>
                         <td>${sale.customerName || 'عميل نقدي'}</td>
                         <td>${sale.paymentType === 'credit' ? 'آجل' : 'نقدي'}</td>
-                        <td>${sale.grandTotal.toFixed(2)}</td>
+                        <td>${sale.grandTotal !== undefined ? sale.grandTotal.toFixed(2) : 'N/A'}</td>
                         <td class="actions-cell">
                             <button class="btn btn-secondary view-details-btn" data-id="${doc.id}"><i class="fas fa-info-circle"></i> عرض</button>
                             </td>
@@ -111,7 +143,6 @@
                 });
             });
 
-            // Placeholder for View Details functionality (can be expanded with a modal later)
             salesTableBody.addEventListener('click', async (e) => {
                 const button = e.target.closest('button');
                 if (button && button.classList.contains('view-details-btn')) {
@@ -124,13 +155,17 @@
                             التاريخ: ${formatDate(saleData.timestamp)}\n
                             العميل: ${saleData.customerName || 'عميل نقدي'}\n
                             نوع الدفع: ${saleData.paymentType === 'credit' ? 'آجل' : 'نقدي'}\n
-                            الإجمالي: ${saleData.grandTotal.toFixed(2)}\n\n
+                            الإجمالي: ${saleData.grandTotal !== undefined ? saleData.grandTotal.toFixed(2) : 'N/A'}\n\n
                             المنتجات:\n
                         `;
                         saleData.items.forEach(item => {
-                            details += `- ${item.name} (${item.unit}): ${item.quantity} x ${item.price.toFixed(2)} = ${(item.quantity * item.price).toFixed(2)}\n`;
+                            const itemPrice = typeof item.price === 'number' ? item.price : 0;
+                            const itemQuantity = typeof item.quantity === 'number' ? item.quantity : 0;
+                            details += `- ${item.name} (${item.unit}): ${item.quantity} x ${itemPrice.toFixed(2)} = ${(itemQuantity * itemPrice).toFixed(2)}\n`;
                         });
-                        alert(details);
+                        alert(details); // Using alert for simplicity, a modal would be better
+                    } else {
+                        showToast('تفاصيل الفاتورة غير متوفرة.', 'error');
                     }
                 }
             });
