@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -27,6 +29,7 @@
         <main class="main-content" style="display: flex; flex-direction: column;">
             <header class="main-header">
                 <h2>نقطة البيع والفاتورة</h2>
+                <button class="menu-toggle btn btn-secondary" id="menuToggle"><i class="fas fa-bars"></i></button>
                 <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
 
@@ -64,7 +67,8 @@
                     <h3>ملخص الفاتورة</h3>
                     <div class="form-group">
                         <label for="customerSelect">العميل:</label>
-                        <select id="customerSelect"><option value="">عميل نقدي</option></select>
+                        <select id="customerSelect"><option value="">عميل نقدي (غير مسجل)</option></select>
+                        <input type="text" id="tempCustomerName" placeholder="اسم العميل (إذا كان غير مسجل)" style="margin-top: 5px; display: none;">
                     </div>
                      <div class="form-group">
                         <label for="paymentType">نوع الدفع:</label>
@@ -83,6 +87,9 @@
                     <button class="btn btn-primary" id="completeSaleBtn" style="width: 100%; padding: 15px; font-size: 18px; margin-top: 20px;">
                         <i class="fas fa-check-circle"></i> إتمام البيع
                     </button>
+                    <button class="btn btn-secondary" id="printInvoiceBtn" style="width: 100%; padding: 15px; font-size: 18px; margin-top: 10px; display: none;">
+                        <i class="fas fa-print"></i> طباعة الفاتورة
+                    </button>
                 </div>
             </section>
         </main>
@@ -96,6 +103,39 @@
         </div>
     </div>
 
+    <div id="invoicePrintTemplate" style="display: none; padding: 20px; font-family: 'Cairo', sans-serif; font-size: 12px; direction: rtl; text-align: right;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">صيدلية الأمل</h2>
+            <p style="margin: 5px 0;">رقم التواصل: 01xxxxxxxxx</p>
+            <p style="margin: 5px 0;">تاريخ الفاتورة: <span id="invoiceDate"></span></p>
+            <p style="margin: 5px 0;">رقم الفاتورة: <span id="invoiceNumber"></span></p>
+        </div>
+        <div style="margin-bottom: 20px;">
+            <p>العميل: <span id="invoiceCustomerName"></span></p>
+            <p>نوع الدفع: <span id="invoicePaymentType"></span></p>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="border: 1px solid #ddd; padding: 8px;">المنتج</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">الوحدة</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">الكمية</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">السعر</th>
+                    <th style="border: 1px solid #ddd; padding: 8px;">الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody id="invoicePrintItemsBody">
+                </tbody>
+        </table>
+        <div style="text-align: left; border-top: 1px dashed #ccc; padding-top: 10px;">
+            <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">الإجمالي الكلي: <span id="invoiceGrandTotal">0.00</span></p>
+        </div>
+        <div style="text-align: center; margin-top: 30px;">
+            <p>شكراً لزيارتكم!</p>
+        </div>
+    </div>
+
+
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
@@ -108,6 +148,22 @@
         const app = firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+        // Mobile menu toggle logic
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', () => {
+                sidebar.classList.toggle('open');
+            });
+        }
+        document.addEventListener('click', (event) => {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('open') && 
+                !sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+                sidebar.classList.remove('open');
+            }
+        });
+
 
         auth.onAuthStateChanged(user => {
             if (user) { document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`; } 
@@ -127,7 +183,7 @@
             scanner = new QrScanner(videoEl, result => {
                 if (targetInput) {
                     targetInput.value = result.data;
-                    targetInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger input event for search
                 }
                 closeScanner();
             }, { highlightScanRegion: true, highlightCodeOutline: true });
@@ -148,13 +204,18 @@
         const grandTotalEl = document.getElementById('grandTotal');
         const completeSaleBtn = document.getElementById('completeSaleBtn');
         const customerSelect = document.getElementById('customerSelect');
+        const tempCustomerNameInput = document.getElementById('tempCustomerName');
         const paymentTypeSelect = document.getElementById('paymentType');
+        const printInvoiceBtn = document.getElementById('printInvoiceBtn');
 
         let invoiceItems = [];
         let searchTimeout;
+        let lastSaleData = null; // To store data for printing
+
 
         // Load customers into dropdown
-        db.collection('customers').orderBy('name').get().then(snapshot => {
+        db.collection('customers').orderBy('name').onSnapshot(snapshot => {
+            customerSelect.innerHTML = '<option value="">عميل نقدي (غير مسجل)</option>';
             snapshot.forEach(doc => {
                 const customer = doc.data();
                 const option = document.createElement('option');
@@ -165,16 +226,35 @@
             });
         });
 
+        // Toggle temporary customer name input based on customer selection
+        customerSelect.addEventListener('change', () => {
+            if (customerSelect.value === '') {
+                tempCustomerNameInput.style.display = 'block';
+                tempCustomerNameInput.focus();
+            } else {
+                tempCustomerNameInput.style.display = 'none';
+                tempCustomerNameInput.value = ''; // Clear temp name if a registered customer is selected
+            }
+        });
+
         const renderInvoice = () => {
             invoiceItemsBody.innerHTML = '';
             invoiceItems.forEach((item, index) => {
                 const row = invoiceItemsBody.insertRow();
+                // Determine available units based on product data
+                let unitOptions = `<option value="box" ${item.unit === 'علبة' ? 'selected' : ''}>علبة</option>`;
+                if (item.originalProduct.unitsPerBox > 0) {
+                    unitOptions += `<option value="strip" ${item.unit === 'شريط' ? 'selected' : ''}>شريط</option>`;
+                }
+                if (item.originalProduct.unitsPerStrip > 0) { // Check for 'حبة' unit
+                     unitOptions += `<option value="unit" ${item.unit === 'حبة' ? 'selected' : ''}>حبة</option>`;
+                }
+
                 row.innerHTML = `
                     <td>${item.name}</td>
                     <td>
                         <select class="unit-select" data-index="${index}">
-                            <option value="box" ${item.unit === 'علبة' ? 'selected' : ''}>علبة</option>
-                            <option value="strip" ${item.unit === 'شريط' ? 'selected' : ''}>شريط</option>
+                            ${unitOptions}
                         </select>
                     </td>
                     <td><input type="number" value="${item.quantity}" min="1" data-index="${index}"></td>
@@ -197,10 +277,22 @@
             const item = invoiceItems[index];
             if (e.target.classList.contains('unit-select')) {
                 const selectedUnit = e.target.value;
-                item.unit = selectedUnit === 'box' ? 'علبة' : 'شريط';
-                item.price = selectedUnit === 'box' ? item.originalProduct.salePrice_box : item.originalProduct.salePrice_strip;
+                item.unit = selectedUnit === 'box' ? 'علبة' : (selectedUnit === 'strip' ? 'شريط' : 'حبة');
+                // Update price based on selected unit
+                if (selectedUnit === 'box') {
+                    item.price = item.originalProduct.salePrice_box;
+                } else if (selectedUnit === 'strip') {
+                    item.price = item.originalProduct.salePrice_strip;
+                } else if (selectedUnit === 'unit') { // New unit type
+                    item.price = item.originalProduct.salePrice_unit;
+                }
             } else if (e.target.tagName === 'INPUT') {
-                item.quantity = parseInt(e.target.value);
+                const newQuantity = parseInt(e.target.value);
+                if (newQuantity < 1 || isNaN(newQuantity)) {
+                    e.target.value = item.quantity; // Revert to old quantity if invalid
+                    return;
+                }
+                item.quantity = newQuantity;
             }
             renderInvoice();
         });
@@ -215,26 +307,61 @@
 
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
-            const term = searchInput.value;
-            if (term.length < 2) { searchResults.innerHTML = ''; return; };
+            const term = searchInput.value.trim();
+            if (term.length < 2) { searchResults.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>'; return; };
             searchTimeout = setTimeout(async () => {
-                const byBoxBarcode = db.collection('products').where('barcode_box', '==', term).get();
-                const byStripBarcode = db.collection('products').where('barcode_strip', '==', term).get();
-                const [boxResults, stripResults] = await Promise.all([byBoxBarcode, byStripBarcode]);
-                
                 searchResults.innerHTML = '';
-                const displayProduct = (doc, unit) => {
+                let productsFound = [];
+
+                // Search by Barcode
+                const byBoxBarcode = await db.collection('products').where('barcode_box', '==', term).get();
+                byBoxBarcode.forEach(doc => productsFound.push({ doc, unit: 'علبة' }));
+
+                const byStripBarcode = await db.collection('products').where('barcode_strip', '==', term).get();
+                byStripBarcode.forEach(doc => productsFound.push({ doc, unit: 'شريط' }));
+
+                const byUnitBarcode = await db.collection('products').where('barcode_unit', '==', term).get(); // Search by unit barcode
+                byUnitBarcode.forEach(doc => productsFound.push({ doc, unit: 'حبة' }));
+
+                // Search by Name (case-insensitive, partial match)
+                if (productsFound.length === 0) { // Only search by name if no barcode match
+                    const nameSearchSnapshot = await db.collection('products')
+                                                     .orderBy('name')
+                                                     .startAt(term)
+                                                     .endAt(term + '\uf8ff')
+                                                     .get();
+                    nameSearchSnapshot.forEach(doc => {
+                        const product = doc.data();
+                        // Add all available units for name search results
+                        productsFound.push({ doc, unit: 'علبة' });
+                        if (product.unitsPerBox > 0 && product.salePrice_strip > 0) {
+                            productsFound.push({ doc, unit: 'شريط' });
+                        }
+                        if (product.unitsPerStrip > 0 && product.salePrice_unit > 0) { // Check for 'حبة' unit
+                            productsFound.push({ doc, unit: 'حبة' });
+                        }
+                    });
+                }
+                
+                if (productsFound.length === 0) {
+                    searchResults.innerHTML = '<p class="no-data-row">لا يوجد منتجات مطابقة.</p>';
+                    return;
+                }
+
+                // Display unique products (can have multiple units for the same product)
+                productsFound.forEach(({ doc, unit }) => {
                     const product = doc.data();
                     const resultDiv = document.createElement('div');
                     resultDiv.className = 'add-item-btn';
                     resultDiv.dataset.id = doc.id;
                     resultDiv.dataset.unit = unit;
-                    resultDiv.innerHTML = `<span>${product.name} - ${unit}</span>`;
+                    resultDiv.innerHTML = `<span>${product.name} - ${unit} ( ${
+                        unit === 'علبة' ? product.salePrice_box.toFixed(2) : 
+                        (unit === 'شريط' ? product.salePrice_strip.toFixed(2) : 
+                        product.salePrice_unit.toFixed(2))
+                    } جنيه )</span>`;
                     searchResults.appendChild(resultDiv);
-                };
-
-                boxResults.forEach(doc => displayProduct(doc, 'علبة'));
-                stripResults.forEach(doc => displayProduct(doc, 'شريط'));
+                });
 
             }, 300);
         });
@@ -246,33 +373,87 @@
                 const product = docSnap.data();
                 const unit = itemDiv.dataset.unit;
 
+                // Validate stock before adding to invoice
+                const currentStockBoxes = product.stock_boxes || 0;
+                const currentStockStrips = product.stock_strips || 0;
+                const currentStockUnits = product.stock_units || 0;
+                const unitsPerBox = product.unitsPerBox || 1;
+                const unitsPerStrip = product.unitsPerStrip || 1;
+                
+                let availableQuantity;
+                if (unit === 'علبة') availableQuantity = currentStockBoxes;
+                else if (unit === 'شريط') availableQuantity = currentStockStrips;
+                else if (unit === 'حبة') availableQuantity = currentStockUnits;
+
+
+                if (availableQuantity < 1) {
+                    alert(`عذرًا، لا يوجد كمية كافية من ${product.name} بوحدة ${unit}.`);
+                    return;
+                }
+
                 const newItem = {
                     productId: docSnap.id,
                     name: product.name,
                     unit: unit,
-                    quantity: 1,
-                    price: unit === 'علبة' ? product.salePrice_box : product.salePrice_strip,
-                    originalProduct: product
+                    quantity: 1, // Default quantity to 1
+                    price: unit === 'علبة' ? product.salePrice_box : 
+                           (unit === 'شريط' ? product.salePrice_strip : product.salePrice_unit),
+                    originalProduct: product // Store original product data for stock calculations
                 };
                 
                 const existingItem = invoiceItems.find(item => item.productId === newItem.productId && item.unit === newItem.unit);
-                if (existingItem) { existingItem.quantity++; } 
-                else { invoiceItems.push(newItem); }
+                if (existingItem) { 
+                    // Check if adding one more exceeds stock
+                    let totalDesiredQuantity;
+                    if (existingItem.unit === 'علبة') totalDesiredQuantity = existingItem.quantity + 1;
+                    else if (existingItem.unit === 'شريط') totalDesiredQuantity = existingItem.quantity + 1;
+                    else if (existingItem.unit === 'حبة') totalDesiredQuantity = existingItem.quantity + 1;
+
+                    if (totalDesiredQuantity > availableQuantity) {
+                         alert(`لا يوجد كمية إضافية كافية من ${product.name} بوحدة ${unit}.`);
+                         return;
+                    }
+                    existingItem.quantity++; 
+                } 
+                else { 
+                    invoiceItems.push(newItem); 
+                }
                 renderInvoice();
             }
         });
 
         completeSaleBtn.addEventListener('click', async () => {
             if(invoiceItems.length === 0) return alert('الفاتورة فارغة!');
-            if(paymentTypeSelect.value === 'credit' && !customerSelect.value) return alert('يرجى اختيار عميل للبيع الآجل.');
+            
+            let selectedCustomerId = customerSelect.value || null;
+            let customerNameForSale = customerSelect.options[customerSelect.selectedIndex].text;
+
+            if (paymentTypeSelect.value === 'credit') {
+                if (!selectedCustomerId && !tempCustomerNameInput.value.trim()) {
+                    return alert('يرجى اختيار عميل أو إدخال اسم العميل للبيع الآجل.');
+                }
+                if (!selectedCustomerId && tempCustomerNameInput.value.trim()) {
+                    customerNameForSale = tempCustomerNameInput.value.trim();
+                }
+            } else {
+                customerNameForSale = 'عميل نقدي';
+                selectedCustomerId = null; // Ensure no customer ID if cash sale and not chosen
+            }
+
 
             const grandTotal = parseFloat(grandTotalEl.textContent);
             const saleData = {
-                items: invoiceItems.map(i => ({ productId: i.productId, name: i.name, unit: i.unit, quantity: i.quantity, price: i.price })),
+                items: invoiceItems.map(i => ({ 
+                    productId: i.productId, 
+                    name: i.name, 
+                    unit: i.unit, 
+                    quantity: i.quantity, 
+                    price: i.price 
+                })),
                 grandTotal: grandTotal,
                 paymentType: paymentTypeSelect.value,
-                customerId: customerSelect.value || null,
-                customerName: customerSelect.value ? customerSelect.options[customerSelect.selectedIndex].text : 'عميل نقدي',
+                customerId: selectedCustomerId,
+                customerName: customerNameForSale,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             
@@ -284,35 +465,138 @@
                         const productDoc = await transaction.get(productRef);
                         if (!productDoc.exists) throw new Error(`المنتج ${item.name} غير موجود!`);
 
-                        const currentStockStrips = productDoc.data().stock_strips;
-                        const stripsToSell = item.unit === 'علبة' ? item.quantity * item.originalProduct.unitsPerBox : item.quantity;
-                        if(currentStockStrips < stripsToSell) throw new Error(`الكمية غير كافية للمنتج: ${item.name}`);
+                        const productDataInDb = productDoc.data();
+                        let currentTotalUnits = productDataInDb.stock_units || 0;
+                        const unitsPerBox = productDataInDb.unitsPerBox || 1;
+                        const unitsPerStrip = productDataInDb.unitsPerStrip || 1;
+
+                        let unitsToDeduct;
+                        if (item.unit === 'علبة') {
+                            unitsToDeduct = item.quantity * unitsPerBox * unitsPerStrip;
+                        } else if (item.unit === 'شريط') {
+                            unitsToDeduct = item.quantity * unitsPerStrip;
+                        } else if (item.unit === 'حبة') {
+                            unitsToDeduct = item.quantity;
+                        }
+
+                        if (currentTotalUnits < unitsToDeduct) {
+                            throw new Error(`الكمية غير كافية للمنتج: ${item.name} (${item.unit} - مطلوب ${item.quantity}). المتوفر ${Math.floor(currentTotalUnits / (item.unit === 'علبة' ? unitsPerBox * unitsPerStrip : (item.unit === 'شريط' ? unitsPerStrip : 1)))} ${item.unit}.`);
+                        }
                         
-                        const newStripCount = currentStockStrips - stripsToSell;
-                        const newBoxCount = Math.floor(newStripCount / item.originalProduct.unitsPerBox);
-                        transaction.update(productRef, { stock_strips: newStripCount, stock_boxes: newBoxCount });
+                        const newTotalUnits = currentTotalUnits - unitsToDeduct;
+                        
+                        // Recalculate boxes and strips from new total units
+                        const newStockBoxes = Math.floor(newTotalUnits / (unitsPerBox * unitsPerStrip));
+                        const remainderAfterBoxes = newTotalUnits % (unitsPerBox * unitsPerStrip);
+                        const newStockStrips = Math.floor(remainderAfterBoxes / unitsPerStrip);
+
+                        transaction.update(productRef, { 
+                            stock_units: newTotalUnits,
+                            stock_boxes: newStockBoxes,
+                            stock_strips: newStockStrips
+                        });
                     }
 
                     // 2. Update customer debt if sale is on credit
                     if (saleData.paymentType === 'credit') {
-                        const customerRef = db.collection('customers').doc(saleData.customerId);
-                        transaction.update(customerRef, { currentDebt: firebase.firestore.FieldValue.increment(grandTotal) });
+                        if (saleData.customerId) { // Existing customer
+                            const customerRef = db.collection('customers').doc(saleData.customerId);
+                            transaction.update(customerRef, { currentDebt: firebase.firestore.FieldValue.increment(grandTotal) });
+                        } else if (saleData.customerName) { // New (temporary) customer for debt
+                            const newCustomerRef = db.collection('customers').doc(); // Auto-generate new customer ID
+                            saleData.customerId = newCustomerRef.id; // Store the new ID in saleData
+                            transaction.set(newCustomerRef, { 
+                                name: saleData.customerName, 
+                                phone: '', 
+                                address: '', 
+                                currentDebt: grandTotal 
+                            });
+                        }
                     }
 
                     // 3. Create sale record
                     const saleRef = db.collection('sales').doc();
                     transaction.set(saleRef, saleData);
+
+                    // Store last sale data for printing
+                    lastSaleData = { ...saleData, id: saleRef.id };
                 });
 
                 alert('تم البيع بنجاح!');
+                printInvoiceBtn.style.display = 'block'; // Show print button
                 invoiceItems = [];
                 renderInvoice();
                 searchInput.value = '';
                 searchResults.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>';
+                tempCustomerNameInput.value = '';
+                tempCustomerNameInput.style.display = 'none'; // Hide temp customer input
+                customerSelect.value = ''; // Reset customer select
             } catch (error) {
                 console.error("Sale failed: ", error);
                 alert(`فشل إتمام البيع: ${error.message}`);
             }
+        });
+
+        printInvoiceBtn.addEventListener('click', () => {
+            if (!lastSaleData) {
+                alert('لا توجد فاتورة لطباعتها. يرجى إتمام عملية بيع أولاً.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                unit: 'mm',
+                format: 'a5', // Common size for receipts
+                orientation: 'portrait'
+            });
+
+            const template = document.getElementById('invoicePrintTemplate');
+            document.getElementById('invoiceDate').textContent = new Date().toLocaleString('ar-EG');
+            document.getElementById('invoiceNumber').textContent = lastSaleData.id;
+            document.getElementById('invoiceCustomerName').textContent = lastSaleData.customerName;
+            document.getElementById('invoicePaymentType').textContent = lastSaleData.paymentType === 'cash' ? 'نقدي' : 'آجل';
+            document.getElementById('invoiceGrandTotal').textContent = lastSaleData.grandTotal.toFixed(2);
+
+            const printItemsBody = document.getElementById('invoicePrintItemsBody');
+            printItemsBody.innerHTML = '';
+            lastSaleData.items.forEach(item => {
+                const row = printItemsBody.insertRow();
+                row.innerHTML = `
+                    <td style="border: 1px solid #ddd; padding: 8px;">${item.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${item.unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${item.quantity}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${item.price.toFixed(2)}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">${(item.price * item.quantity).toFixed(2)}</td>
+                `;
+            });
+
+            // Using html2canvas to convert the template to an image, then add to PDF
+            html2canvas(template, { 
+                scale: 2, // Increase scale for better resolution
+                useCORS: true, // Needed if you have external resources (like fonts, though unlikely for this simple case)
+                logging: false // Disable logging
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 148; // A5 width in mm
+                const pageHeight = 210; // A5 height in mm
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+                doc.save(`invoice_${lastSaleData.id}.pdf`);
+            }).catch(err => {
+                console.error("Error generating PDF:", err);
+                alert("حدث خطأ أثناء إنشاء الفاتورة. الرجاء المحاولة مرة أخرى.");
+            });
         });
     });
     </script>
