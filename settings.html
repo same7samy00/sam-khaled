@@ -49,7 +49,6 @@
                         <input type="url" id="pharmacyLogoUrl" placeholder="مثال: https://example.com/logo.png">
                     </div>
                     <button type="submit" class="btn btn-primary">حفظ معلومات الصيدلية</button>
-                    <p id="pharmacyInfoMessage" class="message-box"></p>
                 </form>
             </section>
 
@@ -61,7 +60,6 @@
                         <input type="number" id="defaultProfitMargin" step="0.01" min="0" max="100">
                     </div>
                     <button type="submit" class="btn btn-primary">حفظ الإعدادات العامة</button>
-                    <p id="generalSettingsMessage" class="message-box"></p>
                 </form>
             </section>
         </main>
@@ -135,8 +133,6 @@
 
             const pharmacyInfoForm = document.getElementById('pharmacyInfoForm');
             const generalSettingsForm = document.getElementById('generalSettingsForm');
-            const pharmacyInfoMessage = document.getElementById('pharmacyInfoMessage');
-            const generalSettingsMessage = document.getElementById('generalSettingsMessage');
 
             // Load settings
             async function loadSettings() {
