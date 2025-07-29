@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -27,36 +27,44 @@
         <main class="main-content">
             <header class="main-header">
                 <h2>لوحة التحكم</h2>
+                <button class="menu-toggle btn btn-secondary" id="menuToggle"><i class="fas fa-bars"></i></button>
                 <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
             
-            <section class="dashboard-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
-                <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
-                    <div class="card-icon" style="font-size: 24px; color: var(--primary-color); margin-left: 15px;"><i class="fas fa-dollar-sign"></i></div>
+            <section class="dashboard-cards">
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-dollar-sign"></i></div>
                     <div class="card-info">
                         <h3>إجمالي مبيعات اليوم</h3>
-                        <p id="todaySales" style="font-size: 24px; font-weight: bold;">0.00 جنيه</p>
+                        <p id="todaySales">0.00 جنيه</p>
                     </div>
                 </div>
-                <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
-                    <div class="card-icon" style="font-size: 24px; color: var(--primary-color); margin-left: 15px;"><i class="fas fa-file-invoice"></i></div>
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
                     <div class="card-info">
                         <h3>عدد فواتير اليوم</h3>
-                        <p id="todayInvoices" style="font-size: 24px; font-weight: bold;">0</p>
+                        <p id="todayInvoices">0</p>
                     </div>
                 </div>
-                <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
-                    <div class="card-icon" style="font-size: 24px; color: var(--error-color); margin-left: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-exclamation-triangle"></i></div>
                     <div class="card-info">
                         <h3>منتجات منخفضة المخزون</h3>
-                        <p id="lowStockCount" style="font-size: 24px; font-weight: bold;">0</p>
+                        <p id="lowStockCount">0</p>
                     </div>
                 </div>
-                 <div class="card" style="background: white; padding: 20px; border-radius: 8px; box-shadow: var(--shadow-light); display:flex; align-items:center;">
-                    <div class="card-icon" style="font-size: 24px; color: #f39c12; margin-left: 15px;"><i class="fas fa-hourglass-end"></i></div>
+                 <div class="card">
+                    <div class="card-icon"><i class="fas fa-hourglass-end"></i></div>
                     <div class="card-info">
                         <h3>منتجات قرب انتهاء الصلاحية</h3>
-                        <p id="expiringCount" style="font-size: 24px; font-weight: bold;">0</p>
+                        <p id="expiringCount">0</p>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-icon"><i class="fas fa-calendar-times"></i></div>
+                    <div class="card-info">
+                        <h3>منتجات منتهية الصلاحية</h3>
+                        <p id="expiredCount">0</p>
                     </div>
                 </div>
             </section>
@@ -74,6 +82,22 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
+            // Mobile menu toggle logic
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggle) {
+                menuToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+            }
+            document.addEventListener('click', (event) => {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('open') && 
+                    !sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+                    sidebar.classList.remove('open');
+                }
+            });
+
+
             auth.onAuthStateChanged(user => {
                 if (user) {
                     document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`;
@@ -89,6 +113,7 @@
                 const todayInvoicesEl = document.getElementById('todayInvoices');
                 const lowStockCountEl = document.getElementById('lowStockCount');
                 const expiringCountEl = document.getElementById('expiringCount');
+                const expiredCountEl = document.getElementById('expiredCount'); // New element
 
                 // Today's Sales
                 const startOfDay = new Date();
@@ -100,19 +125,41 @@
                     if(todayInvoicesEl) todayInvoicesEl.textContent = snap.size;
                 });
 
-                // Low Stock
-                db.collection('products').where('stock_boxes', '<=', 5).onSnapshot(snap => {
-                    if(lowStockCountEl) lowStockCountEl.textContent = snap.size;
-                });
-                
-                // Expiring Soon (in next 90 days)
-                const soonDate = new Date();
-                soonDate.setDate(soonDate.getDate() + 90);
-                const todayStr = new Date().toISOString().split('T')[0];
-                const soonDateStr = soonDate.toISOString().split('T')[0];
+                // Low Stock, Expiring Soon, and Expired Products
+                db.collection('products').onSnapshot(snapshot => {
+                    let lowStock = 0;
+                    let expiringSoon = 0;
+                    let expired = 0;
 
-                db.collection('products').where('expiryDate', '>=', todayStr).where('expiryDate', '<=', soonDateStr).get().then(snap => {
-                     if(expiringCountEl) expiringCountEl.textContent = snap.size;
+                    const today = new Date();
+                    today.setHours(0,0,0,0); // Reset time for accurate date comparison
+
+                    snapshot.forEach(doc => {
+                        const product = doc.data();
+                        
+                        // Check low stock
+                        if (product.stock_boxes <= product.reorderLevel) {
+                            lowStock++;
+                        }
+
+                        // Check expiry dates
+                        if (product.expiryDate) {
+                            const expiry = new Date(product.expiryDate);
+                            expiry.setHours(0,0,0,0);
+
+                            const daysUntilExpiry = (expiry - today) / (1000 * 60 * 60 * 24);
+
+                            if (daysUntilExpiry < 0) {
+                                expired++;
+                            } else if (daysUntilExpiry < 90) { // expiring in next 90 days
+                                expiringSoon++;
+                            }
+                        }
+                    });
+
+                    if(lowStockCountEl) lowStockCountEl.textContent = lowStock;
+                    if(expiringCountEl) expiringCountEl.textContent = expiringSoon;
+                    if(expiredCountEl) expiredCountEl.textContent = expired; // Update new element
                 });
             }
         });
