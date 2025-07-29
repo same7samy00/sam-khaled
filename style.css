@@ -1,4 +1,4 @@
-﻿/* style.css - تصميم موحد كليًا وجذاب */
+/* style.css - تصميم موحد كليًا وجذاب */
 :root {
     --primary-color: #3498db; --secondary-color: #2c3e50; --background-color: #ecf0f1; --card-background: #ffffff; --text-color-dark: #2c3e50; --text-color-light: #7f8c8d; --error-color: #e74c3c; --success-color: #27ae60; --border-color: #ddd; --border-radius: 8px; --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.08); --shadow-medium: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
@@ -27,7 +27,9 @@ html, body { height: 100%; }
 .btn-danger { background-color: var(--error-color); }
 .btn-danger:hover { background-color: #c0392b; }
 .login-btn { width: 100%; margin-top: 20px; padding: 12px; font-size: 16px; }
-.error-message { color: var(--error-color); margin-top: 15px; font-weight: 600; display: none; }
+.error-message, .success-message { padding: 10px; border-radius: var(--border-radius); margin-top: 15px; font-weight: 600; display: none; }
+.error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; }
+.success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;}
 .container { display: flex; min-height: 100vh; }
 .sidebar { width: 240px; background-color: var(--secondary-color); color: #fff; padding: 20px 0; display: flex; flex-direction: column; flex-shrink: 0; }
 .sidebar .logo { display: flex; align-items: center; justify-content: center; margin-bottom: 35px; font-size: 26px; font-weight: 700; }
@@ -54,13 +56,37 @@ html, body { height: 100%; }
 .data-table .actions-cell { text-align: left; }
 .data-table .actions-cell .btn { margin-left: 5px; padding: 6px 10px; }
 .no-data-row{ text-align: center !important; color: var(--text-color-light); padding: 20px !important; font-style: italic; }
-.scanner-area { border: 2px dashed var(--primary-color); padding: 10px; margin: 15px auto; max-width: 400px; }
+.scanner-area { border: 2px dashed var(--primary-color); padding: 10px; margin: 15px auto; max-width: 400px; background: #333; }
 .scanner-area video { width: 100%; height: auto; border-radius: var(--border-radius); }
-.pos-section { display: flex; gap: 20px; flex-grow: 1; }
-.pos-left-panel { flex: 2; background: white; padding: 20px; border-radius: 8px; display: flex; flex-direction: column; }
-.pos-right-panel { flex: 1; background: white; padding: 20px; border-radius: 8px; }
+.pos-section { display: flex; gap: 20px; flex-grow: 1; flex-wrap: wrap; }
+.pos-left-panel { flex: 2; background: white; padding: 20px; border-radius: 8px; display: flex; flex-direction: column; min-width: 350px; }
+.pos-right-panel { flex: 1; background: white; padding: 20px; border-radius: 8px; min-width: 300px; }
 #posSearchResults { border: 1px solid #ddd; border-radius: 8px; padding: 10px; min-height: 150px; margin-top: 15px; }
 #posSearchResults > div { padding: 10px; border-bottom: 1px solid #eee; display:flex; justify-content: space-between; align-items: center; cursor: pointer; }
 #posSearchResults > div:last-child { border-bottom: none; }
 #posSearchResults > div:hover { background-color: #f0f0f0; }
 #invoiceItemsBody input[type="number"] { width: 70px; text-align: center; }
+.form-section { background: white; padding: 25px; border-radius: var(--border-radius); box-shadow: var(--shadow-light); margin-bottom: 30px; }
+.form-section h3 { margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+
+@media (max-width: 768px) {
+    .sidebar { position: fixed; right: -250px; top: 0; height: 100%; z-index: 1001; transition: right 0.3s ease; }
+    .sidebar.open { right: 0; }
+    .main-content { width: 100%; }
+    .menu-toggle { display: block; position: fixed; top: 15px; right: 15px; z-index: 1002; background: var(--secondary-color); color: white; border: none; padding: 10px; border-radius: 5px; }
+}
+
+@media print {
+    body { font-family: 'Courier New', Courier, monospace; font-size: 10pt; color: black; }
+    .no-print, .sidebar { display: none !important; }
+    .print-container { width: 100%; }
+    .print-header { text-align: center; margin-bottom: 15px; }
+    .print-header h1 { font-size: 14pt; margin: 0; }
+    .print-header p { font-size: 9pt; margin: 2px 0; }
+    .print-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    .print-table th, .print-table td { text-align: right; padding: 4px; border: 1px solid #ccc; font-size: 9pt; }
+    .print-table th { background-color: #eee; }
+    .print-totals { margin-top: 15px; padding-top: 10px; border-top: 1px dashed #333; }
+    .print-totals p { display: flex; justify-content: space-between; font-size: 10pt; margin: 3px 0; }
+    .print-footer { text-align: center; margin-top: 20px; font-size: 8pt; }
+}
