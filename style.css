@@ -1,4 +1,4 @@
-﻿/* style.css - تصميم موحد كليًا وجذاب */
+/* style.css - تصميم موحد كليًا وجذاب */
 :root {
     --primary-color: #3498db;
     --secondary-color: #2c3e50;
@@ -8,18 +8,12 @@
     --text-color-light: #7f8c8d;
     --error-color: #e74c3c;
     --success-color: #27ae60;
+    --info-color: #3498db;
+    --warning-color: #f39c12;
     --border-color: #ddd;
     --border-radius: 8px;
     --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.08);
     --shadow-medium: 0 4px 10px rgba(0, 0, 0, 0.12);
-
-    /* Product status colors */
-    --low-stock-bg: #fee2e2;
-    /* Light Red */
-    --expiring-soon-bg: #fef3c7;
-    /* Light Yellow */
-    --expired-bg: #fbdada;
-    /* Even redder */
 }
 
 * {
@@ -191,10 +185,12 @@ body {
     padding: 10px;
     border-radius: var(--border-radius);
     margin-top: 15px;
-    display: none; /* Controlled by JS */
+    display: none;
+    /* Controlled by JS */
     opacity: 0;
     transition: opacity 0.3s ease;
 }
+
 .message-box.show {
     display: block;
     opacity: 1;
@@ -211,6 +207,7 @@ body {
     background-color: #d4edda;
     border: 1px solid #c3e6cb;
 }
+
 .message-box.info {
     color: #0c5460;
     background-color: #d1ecf1;
@@ -221,7 +218,8 @@ body {
 .container {
     display: flex;
     min-height: 100vh;
-    position: relative; /* For mobile nav bar */
+    position: relative;
+    /* For mobile nav bar */
 }
 
 .sidebar {
@@ -319,7 +317,8 @@ body {
     box-shadow: var(--shadow-medium);
     position: relative;
     width: 90%;
-    max-width: 800px; /* Default desktop size */
+    max-width: 800px;
+    /* Default desktop size */
 }
 
 .modal-content.small {
@@ -436,12 +435,14 @@ body {
 }
 
 #posSearchResults {
-    border: 1px solid #ddd;
-    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     padding: 10px;
     min-height: 150px;
-    max-height: 300px; /* Limit height for scroll */
-    overflow-y: auto; /* Add scroll to results */
+    max-height: 300px;
+    /* Limit height for scroll */
+    overflow-y: auto;
+    /* Add scroll to results */
     margin-top: 15px;
 }
 
@@ -495,6 +496,64 @@ body {
 }
 
 
+/* Dashboard Cards Modern Design */
+.dashboard-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.dashboard-cards .card {
+    background: var(--card-background);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-medium);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end; /* Align content to the right */
+    text-align: right;
+    position: relative;
+    overflow: hidden;
+}
+
+.dashboard-cards .card-icon {
+    font-size: 40px;
+    color: rgba(0,0,0,0.1); /* Lighter, less intrusive */
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: color 0.3s ease;
+}
+
+.dashboard-cards .card:hover .card-icon {
+    color: var(--primary-color);
+}
+
+.dashboard-cards .card-info {
+    z-index: 1; /* Ensure text is above icon */
+}
+
+.dashboard-cards .card-info h3 {
+    margin: 0 0 10px 0;
+    font-size: 16px;
+    color: var(--text-color-light);
+}
+
+.dashboard-cards .card-info p {
+    font-size: 28px;
+    font-weight: bold;
+    color: var(--text-color-dark);
+}
+
+/* Specific icon colors */
+.dashboard-cards .card:nth-child(1) .card-icon { color: rgba(52, 152, 219, 0.2); } /* Primary for sales */
+.dashboard-cards .card:nth-child(2) .card-icon { color: rgba(44, 62, 80, 0.2); } /* Secondary for invoices */
+.dashboard-cards .card:nth-child(3) .card-icon { color: rgba(231, 76, 60, 0.2); } /* Error for low stock */
+.dashboard-cards .card:nth-child(4) .card-icon { color: rgba(243, 156, 18, 0.2); } /* Warning for expiring */
+.dashboard-cards .card:nth-child(5) .card-icon { color: rgba(192, 57, 43, 0.2); } /* Darker error for expired */
+
+
 /* Mobile Specific Styles */
 .menu-toggle {
     display: none;
@@ -502,7 +561,8 @@ body {
 }
 
 .mobile-nav-bar {
-    display: none; /* Hidden by default */
+    display: none;
+    /* Hidden by default */
     position: fixed;
     bottom: 0;
     left: 0;
@@ -512,7 +572,7 @@ body {
     justify-content: space-around;
     align-items: center;
     padding: 10px 0;
-    box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     border-top-left-radius: 15px;
     border-top-right-radius: 15px;
@@ -554,15 +614,25 @@ body {
     cursor: pointer;
     background-image: linear-gradient(to right, var(--primary-color), var(--secondary-color));
 }
-.toastify.on-error { background-image: linear-gradient(to right, #e74c3c, #c0392b); }
-.toastify.on-success { background-image: linear-gradient(to right, #27ae60, #229954); }
-.toastify.on-info { background-image: linear-gradient(to right, #3498db, #2980b9); }
+
+.toastify.on-error {
+    background-image: linear-gradient(to right, #e74c3c, #c0392b);
+}
+
+.toastify.on-success {
+    background-image: linear-gradient(to right, #27ae60, #229954);
+}
+
+.toastify.on-info {
+    background-image: linear-gradient(to right, #3498db, #2980b9);
+}
 
 
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
-        padding-bottom: 70px; /* Space for mobile nav bar */
+        padding-bottom: 70px;
+        /* Space for mobile nav bar */
     }
 
     .sidebar {
@@ -637,20 +707,34 @@ body {
         /* Take full width */
     }
 
-    /* Full-screen modal on mobile */
+    /* Full-screen modal on mobile, larger on desktop */
     .modal-content {
         padding: 20px;
-        width: 100%;
-        height: 100%;
-        max-width: none;
-        max-height: none;
-        border-radius: 0;
-        overflow-y: auto; /* Enable scrolling for forms */
+        width: 95%; /* Make it wider on larger mobile/smaller tablets */
+        height: auto; /* Allow height to adjust */
+        max-width: 90%; /* Max width for desktop to be larger than before but not full screen */
+        max-height: 90vh; /* Limit height and allow scroll */
+        border-radius: var(--border-radius);
+        overflow-y: auto;
+        /* Enable scrolling for forms */
+    }
+    
+    .modal-content.small {
+        max-width: 90%; /* Also wider for small modals on mobile */
     }
 
-    .modal-content.small {
-        max-width: none; /* Make small modals also full screen on mobile */
+    /* Override for true full screen on small mobile */
+    @media (max-width: 576px) { /* Adjust breakpoint as needed for "full screen" behavior */
+        .modal-content {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            border-radius: 0;
+            padding: 15px;
+        }
     }
+
 
     .modal-content .close-button {
         top: 10px;
@@ -690,12 +774,14 @@ body {
     }
 
     .mobile-nav-bar {
-        display: flex; /* Show on mobile */
+        display: flex;
+        /* Show on mobile */
     }
 
     /* Adjust main content padding for fixed mobile nav bar */
     body.has-mobile-nav .main-content {
-        padding-bottom: 80px; /* Adjust based on mobile nav bar height */
+        padding-bottom: 80px;
+        /* Adjust based on mobile nav bar height */
     }
 }
 
