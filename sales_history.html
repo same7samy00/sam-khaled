@@ -51,6 +51,17 @@
         </main>
     </div>
 
+    <div id="invoiceDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3>تفاصيل الفاتورة</h3>
+            <div id="invoiceDetailsContent">
+                </div>
+            <button class="btn btn-secondary" id="printDetailedInvoiceBtn" style="margin-top: 20px; width: 100%;"><i class="fas fa-print"></i> طباعة الفاتورة</button>
+        </div>
+    </div>
+
+
     <nav class="mobile-nav-bar">
         <a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
         <a href="inventory.html"><i class="fas fa-box-open"></i> المنتجات</a>
@@ -115,7 +126,12 @@
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
 
             const salesTableBody = document.getElementById('salesTableBody');
-            
+            const invoiceDetailsModal = document.getElementById('invoiceDetailsModal');
+            const invoiceDetailsContent = document.getElementById('invoiceDetailsContent');
+            const printDetailedInvoiceBtn = document.getElementById('printDetailedInvoiceBtn');
+
+            let currentInvoiceDataToPrint = null; // To hold data for printing from details modal
+
             const formatDate = (timestamp) => {
                 if (!timestamp || !timestamp.toDate) return 'N/A';
                 return timestamp.toDate().toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
@@ -138,11 +154,12 @@
                         <td>${sale.grandTotal !== undefined ? sale.grandTotal.toFixed(2) : 'N/A'}</td>
                         <td class="actions-cell">
                             <button class="btn btn-secondary view-details-btn" data-id="${doc.id}"><i class="fas fa-info-circle"></i> عرض</button>
-                            </td>
+                        </td>
                     `;
                 });
             });
 
+            // Open Invoice Details Modal
             salesTableBody.addEventListener('click', async (e) => {
                 const button = e.target.closest('button');
                 if (button && button.classList.contains('view-details-btn')) {
@@ -150,24 +167,145 @@
                     const saleDoc = await db.collection('sales').doc(saleId).get();
                     if (saleDoc.exists) {
                         const saleData = saleDoc.data();
-                        let details = `
-                            رقم الفاتورة: ${saleId}\n
-                            التاريخ: ${formatDate(saleData.timestamp)}\n
-                            العميل: ${saleData.customerName || 'عميل نقدي'}\n
-                            نوع الدفع: ${saleData.paymentType === 'credit' ? 'آجل' : 'نقدي'}\n
-                            الإجمالي: ${saleData.grandTotal !== undefined ? saleData.grandTotal.toFixed(2) : 'N/A'}\n\n
-                            المنتجات:\n
+                        currentInvoiceDataToPrint = { ...saleData, id: saleId }; // Store for printing
+                        
+                        let detailsHtml = `
+                            <p><strong>رقم الفاتورة:</strong> ${saleId}</p>
+                            <p><strong>التاريخ:</strong> ${formatDate(saleData.timestamp)}</p>
+                            <p><strong>العميل:</strong> ${saleData.customerName || 'عميل نقدي'}</p>
+                            <p><strong>نوع الدفع:</strong> ${saleData.paymentType === 'credit' ? 'آجل' : 'نقدي'}</p>
+                            <p><strong>الإجمالي الفرعي:</strong> ${saleData.subTotal !== undefined ? saleData.subTotal.toFixed(2) : 'N/A'}</p>
+                            <p><strong>الخصم:</strong> ${saleData.discount !== undefined ? saleData.discount.toFixed(2) : '0.00'}</p>
+                            <p><strong>الإجمالي الكلي:</strong> <strong style="color: var(--primary-color);">${saleData.grandTotal !== undefined ? saleData.grandTotal.toFixed(2) : 'N/A'}</strong></p>
+                            <h4 style="margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px;">المنتجات:</h4>
+                            <table class="data-table" style="width: 100%; font-size: 13px;">
+                                <thead>
+                                    <tr>
+                                        <th>المنتج</th>
+                                        <th>الوحدة</th>
+                                        <th>الكمية</th>
+                                        <th>السعر</th>
+                                        <th>الإجمالي</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                         `;
                         saleData.items.forEach(item => {
                             const itemPrice = typeof item.price === 'number' ? item.price : 0;
                             const itemQuantity = typeof item.quantity === 'number' ? item.quantity : 0;
-                            details += `- ${item.name} (${item.unit}): ${item.quantity} x ${itemPrice.toFixed(2)} = ${(itemQuantity * itemPrice).toFixed(2)}\n`;
+                            detailsHtml += `
+                                <tr>
+                                    <td>${item.name}</td>
+                                    <td>${item.unit}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${itemPrice.toFixed(2)}</td>
+                                    <td>${(itemQuantity * itemPrice).toFixed(2)}</td>
+                                </tr>
+                            `;
                         });
-                        alert(details); // Using alert for simplicity, a modal would be better
+                        detailsHtml += `</tbody></table>`;
+                        invoiceDetailsContent.innerHTML = detailsHtml;
+                        invoiceDetailsModal.style.display = 'flex';
                     } else {
                         showToast('تفاصيل الفاتورة غير متوفرة.', 'error');
                     }
                 }
+            });
+
+            // Close Invoice Details Modal
+            invoiceDetailsModal.querySelector('.close-button').addEventListener('click', () => {
+                invoiceDetailsModal.style.display = 'none';
+                currentInvoiceDataToPrint = null; // Clear data after closing
+            });
+
+            // Print Detailed Invoice from Modal
+            printDetailedInvoiceBtn.addEventListener('click', async () => {
+                if (!currentInvoiceDataToPrint) {
+                    showToast('لا توجد فاتورة لطباعتها.', 'info');
+                    return;
+                }
+
+                // Get pharmacy settings for print header
+                let pharmacySettings = {};
+                try {
+                    const settingsDoc = await db.collection('settings').doc('pharmacyConfig').get();
+                    if (settingsDoc.exists) {
+                        pharmacySettings = settingsDoc.data();
+                    }
+                } catch (error) {
+                    console.error("Error loading pharmacy settings for print:", error);
+                    showToast("فشل تحميل إعدادات الصيدلية للطباعة.", 'error');
+                }
+
+                const printContent = `
+                    <div style="padding: 10px; font-family: 'Cairo', sans-serif; font-size: 10px; direction: rtl; text-align: right; width: 78mm; margin: 0 auto;">
+                        <div style="text-align: center; margin-bottom: 10px;">
+                            <h3 style="margin: 0; font-size: 14px;">${pharmacySettings.pharmacyName || 'صيدلية الأمل'}</h3>
+                            <p style="margin: 2px 0;">رقم التواصل: ${pharmacySettings.contactNumber || 'N/A'}</p>
+                            <p style="margin: 2px 0;">التاريخ: ${new Date().toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                            <p style="margin: 2px 0;">رقم الفاتورة: ${currentInvoiceDataToPrint.id}</p>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <p>العميل: ${currentInvoiceDataToPrint.customerName || 'عميل نقدي'}</p>
+                            <p>نوع الدفع: ${currentInvoiceDataToPrint.paymentType === 'cash' ? 'نقدي' : 'آجل'}</p>
+                        </div>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+                            <thead>
+                                <tr>
+                                    <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">المنتج</th>
+                                    <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">وحدة</th>
+                                    <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">كمية</th>
+                                    <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">سعر</th>
+                                    <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">إجمالي</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${currentInvoiceDataToPrint.items.map(item => {
+                                    const itemPrice = typeof item.price === 'number' ? item.price : 0;
+                                    const itemQuantity = typeof item.quantity === 'number' ? item.quantity : 0;
+                                    return `
+                                        <tr>
+                                            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.name}</td>
+                                            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.unit}</td>
+                                            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.quantity}</td>
+                                            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${itemPrice.toFixed(2)}</td>
+                                            <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${(itemPrice * itemQuantity).toFixed(2)}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                        <div style="text-align: left; border-top: 1px dashed #ccc; padding-top: 5px;">
+                            <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">المجموع: ${currentInvoiceDataToPrint.subTotal !== undefined ? currentInvoiceDataToPrint.subTotal.toFixed(2) : 'N/A'}</p>
+                            <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">الخصم: ${(currentInvoiceDataToPrint.discount || 0).toFixed(2)}</p>
+                            <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">الإجمالي الكلي: ${currentInvoiceDataToPrint.grandTotal !== undefined ? currentInvoiceDataToPrint.grandTotal.toFixed(2) : 'N/A'}</p>
+                        </div>
+                        <div style="text-align: center; margin-top: 15px; font-size: 9px;">
+                            <p>شكراً لزيارتكم!</p>
+                        </div>
+                    </div>
+                `;
+
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write('<html><head><title>الفاتورة</title>');
+                printWindow.document.write('<style>');
+                printWindow.document.write(`
+                    body { font-family: 'Cairo', sans-serif; margin: 0; padding: 0; direction: rtl; text-align: right; font-size: 10px; }
+                    .invoice-container { width: 78mm; margin: 0 auto; padding: 5mm; }
+                    h3 { margin: 0; font-size: 14px; text-align: center; }
+                    p { margin: 2px 0; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                    th, td { border: 1px solid #ddd; padding: 4px; text-align: right; }
+                    thead th { background-color: #f2f2f2; }
+                    .summary-line { display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; }
+                    .text-center { text-align: center; }
+                `);
+                printWindow.document.write('</style>');
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(printContent);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.print();
             });
         });
     </script>
