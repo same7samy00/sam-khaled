@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -27,6 +27,7 @@
         <main class="main-content">
             <header class="main-header">
                 <h2>سجل المبيعات</h2>
+                <button class="menu-toggle btn btn-secondary" id="menuToggle"><i class="fas fa-bars"></i></button>
                 <div class="user-info"><span></span> <i class="fas fa-user-circle"></i></div>
             </header>
 
@@ -39,6 +40,7 @@
                             <th>العميل</th>
                             <th>نوع الدفع</th>
                             <th>الإجمالي</th>
+                            <th>الإجراءات</th>
                         </tr>
                     </thead>
                     <tbody id="salesTableBody"></tbody>
@@ -58,6 +60,22 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
+            // Mobile menu toggle logic
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggle) {
+                menuToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+            }
+            document.addEventListener('click', (event) => {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('open') && 
+                    !sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+                    sidebar.classList.remove('open');
+                }
+            });
+
+
             auth.onAuthStateChanged(user => {
                 if (user) { document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`; }
                 else { window.location.href = 'login.html'; }
@@ -74,7 +92,7 @@
             db.collection('sales').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
                 salesTableBody.innerHTML = '';
                 if(snapshot.empty) {
-                    salesTableBody.innerHTML = '<tr><td colspan="5" class="no-data-row">لا يوجد مبيعات مسجلة.</td></tr>';
+                    salesTableBody.innerHTML = '<tr><td colspan="6" class="no-data-row">لا يوجد مبيعات مسجلة.</td></tr>'; // Updated colspan
                     return;
                 }
                 snapshot.forEach(doc => {
@@ -86,8 +104,35 @@
                         <td>${sale.customerName || 'عميل نقدي'}</td>
                         <td>${sale.paymentType === 'credit' ? 'آجل' : 'نقدي'}</td>
                         <td>${sale.grandTotal.toFixed(2)}</td>
+                        <td class="actions-cell">
+                            <button class="btn btn-secondary view-details-btn" data-id="${doc.id}"><i class="fas fa-info-circle"></i> عرض</button>
+                            </td>
                     `;
                 });
+            });
+
+            // Placeholder for View Details functionality (can be expanded with a modal later)
+            salesTableBody.addEventListener('click', async (e) => {
+                const button = e.target.closest('button');
+                if (button && button.classList.contains('view-details-btn')) {
+                    const saleId = button.dataset.id;
+                    const saleDoc = await db.collection('sales').doc(saleId).get();
+                    if (saleDoc.exists) {
+                        const saleData = saleDoc.data();
+                        let details = `
+                            رقم الفاتورة: ${saleId}\n
+                            التاريخ: ${formatDate(saleData.timestamp)}\n
+                            العميل: ${saleData.customerName || 'عميل نقدي'}\n
+                            نوع الدفع: ${saleData.paymentType === 'credit' ? 'آجل' : 'نقدي'}\n
+                            الإجمالي: ${saleData.grandTotal.toFixed(2)}\n\n
+                            المنتجات:\n
+                        `;
+                        saleData.items.forEach(item => {
+                            details += `- ${item.name} (${item.unit}): ${item.quantity} x ${item.price.toFixed(2)} = ${(item.quantity * item.price).toFixed(2)}\n`;
+                        });
+                        alert(details);
+                    }
+                }
             });
         });
     </script>
