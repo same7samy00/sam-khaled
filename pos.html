@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -66,10 +66,21 @@
                 <div class="pos-right-panel">
                     <h3>ملخص الفاتورة</h3>
                     <div class="form-group">
-                        <label for="customerSelect">العميل:</label>
-                        <select id="customerSelect"><option value="">عميل نقدي (غير مسجل)</option></select>
-                        <input type="text" id="tempCustomerName" placeholder="اسم العميل (إذا كان غير مسجل)" style="margin-top: 5px; display: none;">
+                        <label for="customerSearchInput">بحث عن عميل:</label>
+                        <input type="text" id="customerSearchInput" placeholder="ابحث باسم العميل أو رقمه...">
+                        <div id="customerSearchResults" style="border: 1px solid #ddd; max-height: 150px; overflow-y: auto; display: none;"></div>
                     </div>
+                    <div class="form-group">
+                        <label for="selectedCustomerName">العميل المحدد:</label>
+                        <input type="text" id="selectedCustomerName" readonly value="عميل نقدي" style="background-color: #f0f0f0;">
+                        <input type="hidden" id="selectedCustomerId" value="">
+                        <button type="button" class="btn btn-secondary" id="clearCustomerBtn" style="margin-top: 5px; display: none;"><i class="fas fa-times"></i> مسح العميل</button>
+                    </div>
+                    <div class="form-group">
+                        <label for="tempCustomerNameManual">اسم العميل (إذا كان غير مسجل وستتم إضافة دين):</label>
+                        <input type="text" id="tempCustomerNameManual" placeholder="اسم العميل لـ 'آجل' بدون تسجيل مسبق">
+                    </div>
+                    
                      <div class="form-group">
                         <label for="paymentType">نوع الدفع:</label>
                         <select id="paymentType">
@@ -79,7 +90,8 @@
                     </div>
                     <hr>
                     <div class="invoice-summary">
-                        <p style="display: flex; justify-content: space-between;">المجموع: <span id="subTotal">0.00</span></p>
+                        <p style="display: flex; justify-content: space-between;">المجموع الفرعي: <span id="subTotal">0.00</span></p>
+                        <p style="display: flex; justify-content: space-between;">الخصم: <span id="discountAmount">0.00</span></p>
                         <p style="display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px;">
                             المبلغ المستحق: <span id="grandTotal" style="color: var(--primary-color);">0.00</span>
                         </p>
@@ -104,6 +116,17 @@
         </div>
     </div>
 
+    <div id="invoiceDetailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3>تفاصيل الفاتورة</h3>
+            <div id="invoiceDetailsContent">
+                </div>
+            <button class="btn btn-secondary" id="printDetailedInvoiceBtn" style="margin-top: 20px; width: 100%;"><i class="fas fa-print"></i> طباعة الفاتورة</button>
+        </div>
+    </div>
+
+
     <nav class="mobile-nav-bar">
         <a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
         <a href="inventory.html"><i class="fas fa-box-open"></i> المنتجات</a>
@@ -113,34 +136,36 @@
     </nav>
 
     <div id="invoicePrintTemplate" style="display: none;">
-        <div style="padding: 20px; font-family: 'Cairo', sans-serif; font-size: 12px; direction: rtl; text-align: right; width: 80mm; margin: 0 auto;">
-            <div style="text-align: center; margin-bottom: 15px;">
-                <h2 style="margin: 0;">صيدلية الأمل</h2>
-                <p style="margin: 5px 0;">رقم التواصل: 01xxxxxxxxx</p>
-                <p style="margin: 5px 0;">تاريخ الفاتورة: <span id="invoiceDate"></span></p>
-                <p style="margin: 5px 0;">رقم الفاتورة: <span id="invoiceNumber"></span></p>
+        <div style="padding: 10px; font-family: 'Cairo', sans-serif; font-size: 10px; direction: rtl; text-align: right; width: 78mm; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 14px;">صيدلية الأمل</h3>
+                <p style="margin: 2px 0;">رقم التواصل: <span id="printPharmacyContact"></span></p>
+                <p style="margin: 2px 0;">التاريخ: <span id="printInvoiceDate"></span></p>
+                <p style="margin: 2px 0;">رقم الفاتورة: <span id="printInvoiceNumber"></span></p>
             </div>
-            <div style="margin-bottom: 15px;">
-                <p>العميل: <span id="invoiceCustomerName"></span></p>
-                <p>نوع الدفع: <span id="invoicePaymentType"></span></p>
+            <div style="margin-bottom: 10px;">
+                <p>العميل: <span id="printCustomerName"></span></p>
+                <p>نوع الدفع: <span id="printPaymentType"></span></p>
             </div>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
                 <thead>
-                    <tr style="background-color: #f2f2f2;">
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">المنتج</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">وحدة</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">كمية</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">سعر</th>
-                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">إجمالي</th>
+                    <tr>
+                        <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">المنتج</th>
+                        <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">وحدة</th>
+                        <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">كمية</th>
+                        <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">سعر</th>
+                        <th style="border: 1px solid #ddd; padding: 4px; text-align: right;">إجمالي</th>
                     </tr>
                 </thead>
-                <tbody id="invoicePrintItemsBody">
+                <tbody id="printInvoiceItemsBody">
                     </tbody>
             </table>
-            <div style="text-align: left; border-top: 1px dashed #ccc; padding-top: 8px;">
-                <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">الإجمالي الكلي: <span id="invoiceGrandTotal">0.00</span></p>
+            <div style="text-align: left; border-top: 1px dashed #ccc; padding-top: 5px;">
+                <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">المجموع: <span id="printSubTotal">0.00</span></p>
+                <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">الخصم: <span id="printDiscountAmount">0.00</span></p>
+                <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">الإجمالي الكلي: <span id="printGrandTotal">0.00</span></p>
             </div>
-            <div style="text-align: center; margin-top: 20px;">
+            <div style="text-align: center; margin-top: 15px; font-size: 9px;">
                 <p>شكراً لزيارتكم!</p>
             </div>
         </div>
@@ -197,7 +222,6 @@
             }
         });
 
-
         auth.onAuthStateChanged(user => {
             if (user) { document.querySelector('.user-info span').textContent = `مرحباً، ${user.email.split('@')[0]}`; } 
             else { window.location.href = 'login.html'; }
@@ -214,8 +238,8 @@
         function openScanner(targetInputId) {
             targetInput = document.getElementById(targetInputId);
             scannerModal.style.display = 'flex';
-            // Request camera permission when modal is opened
-            navigator.mediaDevices.getUserMedia({ video: true })
+            // Prefer rear camera
+            navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
                 .then((stream) => {
                     videoEl.srcObject = stream;
                     scanner = new QrScanner(videoEl, result => {
@@ -260,38 +284,99 @@
         const invoiceItemsBody = document.getElementById('invoiceItemsBody');
         const subTotalEl = document.getElementById('subTotal');
         const grandTotalEl = document.getElementById('grandTotal');
+        const discountAmountEl = document.getElementById('discountAmount'); // New for discount
         const completeSaleBtn = document.getElementById('completeSaleBtn');
-        const customerSelect = document.getElementById('customerSelect');
-        const tempCustomerNameInput = document.getElementById('tempCustomerName');
+        const customerSearchInput = document.getElementById('customerSearchInput');
+        const customerSearchResults = document.getElementById('customerSearchResults');
+        const selectedCustomerNameEl = document.getElementById('selectedCustomerName');
+        const selectedCustomerIdInput = document.getElementById('selectedCustomerId');
+        const clearCustomerBtn = document.getElementById('clearCustomerBtn');
+        const tempCustomerNameManualInput = document.getElementById('tempCustomerNameManual');
         const paymentTypeSelect = document.getElementById('paymentType');
         const printInvoiceBtn = document.getElementById('printInvoiceBtn');
 
         let invoiceItems = [];
         let searchTimeout;
+        let customerSearchTimeout;
         let lastSaleData = null; // To store data for printing
+        let pharmacySettings = {}; // To store pharmacy settings for invoice printing
 
-
-        // Load customers into dropdown
-        db.collection('customers').orderBy('name').onSnapshot(snapshot => {
-            customerSelect.innerHTML = '<option value="">عميل نقدي (غير مسجل)</option>';
-            snapshot.forEach(doc => {
-                const customer = doc.data();
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = customer.name;
-                option.dataset.debt = customer.currentDebt || 0;
-                customerSelect.appendChild(option);
-            });
+        // Load pharmacy settings
+        db.collection('settings').doc('pharmacyConfig').get().then(doc => {
+            if (doc.exists) {
+                pharmacySettings = doc.data();
+            }
+        }).catch(error => {
+            console.error("Error loading pharmacy settings:", error);
+            showToast("فشل تحميل إعدادات الصيدلية.", 'error');
         });
 
-        // Toggle temporary customer name input based on customer selection
-        customerSelect.addEventListener('change', () => {
-            if (customerSelect.value === '') {
-                tempCustomerNameInput.style.display = 'block';
-                tempCustomerNameInput.focus();
+        // Customer Search Logic
+        customerSearchInput.addEventListener('input', () => {
+            clearTimeout(customerSearchTimeout);
+            const term = customerSearchInput.value.trim();
+            if (term.length < 2) {
+                customerSearchResults.innerHTML = '';
+                customerSearchResults.style.display = 'none';
+                return;
+            }
+            customerSearchTimeout = setTimeout(async () => {
+                customerSearchResults.innerHTML = '';
+                customerSearchResults.style.display = 'block';
+                const customersSnapshot = await db.collection('customers')
+                    .orderBy('name')
+                    .startAt(term)
+                    .endAt(term + '\uf8ff')
+                    .get();
+                
+                if (customersSnapshot.empty) {
+                    customerSearchResults.innerHTML = '<div style="padding: 10px; color: var(--text-color-light);">لا يوجد عملاء مطابقون.</div>';
+                    return;
+                }
+
+                customersSnapshot.forEach(doc => {
+                    const customer = doc.data();
+                    const customerDiv = document.createElement('div');
+                    customerDiv.style.padding = '10px';
+                    customerDiv.style.borderBottom = '1px solid #eee';
+                    customerDiv.style.cursor = 'pointer';
+                    customerDiv.textContent = `${customer.name} (${customer.phone || 'لا يوجد هاتف'}) - دين: ${(customer.currentDebt || 0).toFixed(2)}`;
+                    customerDiv.dataset.id = doc.id;
+                    customerDiv.dataset.name = customer.name;
+                    customerSearchResults.appendChild(customerDiv);
+                });
+            }, 300);
+        });
+
+        customerSearchResults.addEventListener('click', (e) => {
+            const customerDiv = e.target.closest('div');
+            if (customerDiv && customerDiv.dataset.id) {
+                selectedCustomerIdInput.value = customerDiv.dataset.id;
+                selectedCustomerNameEl.value = customerDiv.dataset.name;
+                tempCustomerNameManualInput.value = ''; // Clear manual input
+                tempCustomerNameManualInput.style.display = 'none'; // Hide manual input
+                clearCustomerBtn.style.display = 'block'; // Show clear button
+                customerSearchResults.innerHTML = '';
+                customerSearchResults.style.display = 'none';
+                showToast(`تم تحديد العميل: ${customerDiv.dataset.name}`, 'info');
+            }
+        });
+
+        clearCustomerBtn.addEventListener('click', () => {
+            selectedCustomerIdInput.value = '';
+            selectedCustomerNameEl.value = 'عميل نقدي';
+            clearCustomerBtn.style.display = 'none';
+            tempCustomerNameManualInput.style.display = 'none'; // Hide manual input again
+            showToast('تم مسح العميل المحدد.', 'info');
+        });
+
+        // Show/hide manual customer name input based on payment type AND if no customer selected
+        paymentTypeSelect.addEventListener('change', () => {
+            if (paymentTypeSelect.value === 'credit' && selectedCustomerIdInput.value === '') {
+                tempCustomerNameManualInput.style.display = 'block';
             } else {
-                tempCustomerNameInput.style.display = 'none';
-                tempCustomerNameInput.value = ''; // Clear temp name if a registered customer is selected
+                tempCustomerNameManualInput.style.display = 'none';
+                tempCustomerNameManualInput.value = '';
             }
         });
 
@@ -322,10 +407,10 @@
                             ${unitOptions}
                         </select>
                     </td>
-                    <td><input type="number" value="${itemQuantity}" min="1" data-index="${index}"></td>
+                    <td><input type="number" value="${itemQuantity}" min="1" data-index="${index}" style="width: 60px; text-align: center;"></td>
                     <td>${itemPrice.toFixed(2)}</td>
                     <td>${itemTotal.toFixed(2)}</td>
-                    <td><button class="btn btn-danger delete-item-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
+                    <td><button class="btn btn-danger delete-item-btn" data-index="${index}" style="padding: 5px 8px;"><i class="fas fa-trash"></i></button></td>
                 `;
             });
             calculateTotals();
@@ -338,19 +423,20 @@
                 return sum + (itemPrice * itemQuantity);
             }, 0);
             subTotalEl.textContent = total.toFixed(2);
+            // No discount for now, can be added later from settings
+            discountAmountEl.textContent = (0).toFixed(2); 
             grandTotalEl.textContent = total.toFixed(2);
         };
         
         invoiceItemsBody.addEventListener('change', (e) => {
             const index = e.target.dataset.index;
             const item = invoiceItems[index];
-            if (!item) return; // Guard against undefined item
+            if (!item) return;
 
             if (e.target.classList.contains('unit-select')) {
                 const selectedUnit = e.target.value;
                 item.unit = selectedUnit === 'box' ? 'علبة' : (selectedUnit === 'strip' ? 'شريط' : 'حبة');
                 
-                // Update price based on selected unit, ensure prices exist before assigning
                 if (selectedUnit === 'box') {
                     item.price = item.originalProduct.salePrice_box || 0;
                 } else if (selectedUnit === 'strip') {
@@ -360,10 +446,10 @@
                 }
                 // Reset quantity to 1 when changing unit, as stock logic is based on initial add
                 item.quantity = 1; 
-            } else if (e.target.tagName === 'INPUT') {
+            } else if (e.target.tagName === 'INPUT' && e.target.type === 'number') {
                 const newQuantity = parseInt(e.target.value);
                 if (isNaN(newQuantity) || newQuantity < 1) {
-                    e.target.value = item.quantity; // Revert to old quantity if invalid
+                    e.target.value = item.quantity;
                     showToast('الكمية يجب أن تكون رقماً صحيحاً وأكبر من 0.', 'error');
                     return;
                 }
@@ -387,29 +473,23 @@
             searchTimeout = setTimeout(async () => {
                 searchResults.innerHTML = '';
                 let productsFound = [];
+                const searchPromises = [];
 
                 // Search by Barcode
-                const byBoxBarcode = await db.collection('products').where('barcode_box', '==', term).get();
-                byBoxBarcode.forEach(doc => productsFound.push({ doc, unit: 'علبة' }));
-
-                const byStripBarcode = await db.collection('products').where('barcode_strip', '==', term).get();
-                byStripBarcode.forEach(doc => {
+                searchPromises.push(db.collection('products').where('barcode_box', '==', term).get().then(snap => snap.forEach(doc => productsFound.push({ doc, unit: 'علبة' }))));
+                searchPromises.push(db.collection('products').where('barcode_strip', '==', term).get().then(snap => snap.forEach(doc => {
                     const product = doc.data();
-                    if (product.salePrice_strip > 0 && product.unitsPerBox > 0) { // Only add if strip price is set and unitsPerBox is defined
-                        productsFound.push({ doc, unit: 'شريط' });
-                    }
-                });
-
-                const byUnitBarcode = await db.collection('products').where('barcode_unit', '==', term).get();
-                byUnitBarcode.forEach(doc => {
+                    if (product.salePrice_strip > 0 && product.unitsPerBox > 0) productsFound.push({ doc, unit: 'شريط' });
+                })));
+                searchPromises.push(db.collection('products').where('barcode_unit', '==', term).get().then(snap => snap.forEach(doc => {
                     const product = doc.data();
-                    if (product.salePrice_unit > 0 && product.unitsPerStrip > 0) { // Only add if unit price is set and unitsPerStrip is defined
-                        productsFound.push({ doc, unit: 'حبة' });
-                    }
-                });
+                    if (product.salePrice_unit > 0 && product.unitsPerStrip > 0) productsFound.push({ doc, unit: 'حبة' });
+                })));
 
-                // Search by Name (case-insensitive, partial match)
-                if (productsFound.length === 0 || term.length > 5) { // Prioritize barcode, then name search if no barcode or longer term
+                await Promise.all(searchPromises);
+
+                // If no barcode matches or for a longer search term, also search by name
+                if (productsFound.length === 0 || term.length > 3) { // Adjusted condition for name search
                     const nameSearchSnapshot = await db.collection('products')
                                                      .orderBy('name')
                                                      .startAt(term)
@@ -417,14 +497,15 @@
                                                      .get();
                     nameSearchSnapshot.forEach(doc => {
                         const product = doc.data();
-                        // Add all available units for name search results
-                        productsFound.push({ doc, unit: 'علبة' });
-                        if (product.unitsPerBox > 0 && product.salePrice_strip > 0) {
-                            productsFound.push({ doc, unit: 'شريط' });
-                        }
-                        if (product.unitsPerStrip > 0 && product.salePrice_unit > 0) {
-                            productsFound.push({ doc, unit: 'حبة' });
-                        }
+                        // Only add if not already added by barcode and add all available units
+                        const existingBox = productsFound.find(p => p.doc.id === doc.id && p.unit === 'علبة');
+                        if (!existingBox) productsFound.push({ doc, unit: 'علبة' });
+
+                        const existingStrip = productsFound.find(p => p.doc.id === doc.id && p.unit === 'شريط');
+                        if (!existingStrip && product.unitsPerBox > 0 && product.salePrice_strip > 0) productsFound.push({ doc, unit: 'شريط' });
+
+                        const existingUnit = productsFound.find(p => p.doc.id === doc.id && p.unit === 'حبة');
+                        if (!existingUnit && product.unitsPerStrip > 0 && product.salePrice_unit > 0) productsFound.push({ doc, unit: 'حبة' });
                     });
                 }
                 
@@ -434,7 +515,7 @@
                 }
 
                 // Display unique products (can have multiple units for the same product)
-                searchResults.innerHTML = ''; // Clear previous results
+                searchResults.innerHTML = '';
                 const displayedProducts = new Set(); // To avoid duplicate product-unit combinations
 
                 productsFound.forEach(({ doc, unit }) => {
@@ -481,9 +562,6 @@
                 const unitsPerStrip = product.unitsPerStrip || 1;
                 let currentTotalUnits = product.stock_units || 0;
                 
-                let desiredUnitValue = 1; // Default to 1 for initial add
-
-                // Determine the equivalent total units for the desired unit
                 let unitFactor = 1; // How many 'units' (pills) are in the selected item unit
                 let itemPrice = 0;
 
@@ -498,9 +576,21 @@
                     itemPrice = product.salePrice_unit || 0;
                 }
 
-                if (currentTotalUnits < unitFactor) { // Check if even one piece of the selected unit is available
+                if (currentTotalUnits < unitFactor) {
                     showToast(`عذرًا، لا يوجد كمية كافية من ${product.name} بوحدة ${unit}.`, 'error');
                     return;
+                }
+
+                // Check if product is expired
+                if (product.expiryDate) {
+                    const expiry = new Date(product.expiryDate);
+                    expiry.setHours(0,0,0,0);
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    if (expiry < today) {
+                        showToast(`تحذير: المنتج ${product.name} منتهي الصلاحية!`, 'warning');
+                        // Optionally prevent adding expired products: return;
+                    }
                 }
 
                 const newItem = {
@@ -516,7 +606,7 @@
 
                 if (existingItemIndex > -1) {
                     const existingItem = invoiceItems[existingItemIndex];
-                    let totalDesiredUnitsForExisting = (existingItem.quantity + 1) * unitFactor; // Check if adding one more exceeds total units
+                    let totalDesiredUnitsForExisting = (existingItem.quantity + 1) * unitFactor;
                     if (totalDesiredUnitsForExisting > currentTotalUnits) {
                         showToast(`لا يوجد كمية إضافية كافية من ${product.name} بوحدة ${unit}. المتوفر ${Math.floor(currentTotalUnits / unitFactor)} ${unit}.`, 'info');
                         return;
@@ -536,16 +626,16 @@
                 return;
             }
             
-            let selectedCustomerId = customerSelect.value || null;
-            let customerNameForSale = customerSelect.options[customerSelect.selectedIndex].textContent; // Use textContent for display
+            let selectedCustomerId = selectedCustomerIdInput.value || null;
+            let customerNameForSale = selectedCustomerNameEl.value; // Get initial name from selected customer input
 
             if (paymentTypeSelect.value === 'credit') {
-                if (!selectedCustomerId && !tempCustomerNameInput.value.trim()) {
+                if (!selectedCustomerId && !tempCustomerNameManualInput.value.trim()) {
                     showToast('يرجى اختيار عميل مسجل أو إدخال اسم العميل للبيع الآجل.', 'error');
                     return;
                 }
-                if (!selectedCustomerId && tempCustomerNameInput.value.trim()) {
-                    customerNameForSale = tempCustomerNameInput.value.trim();
+                if (!selectedCustomerId && tempCustomerNameManualInput.value.trim()) {
+                    customerNameForSale = tempCustomerNameManualInput.value.trim();
                 }
             } else {
                 customerNameForSale = 'عميل نقدي';
@@ -562,6 +652,8 @@
                     quantity: i.quantity, 
                     price: i.price 
                 })),
+                subTotal: parseFloat(subTotalEl.textContent),
+                discount: parseFloat(discountAmountEl.textContent),
                 grandTotal: grandTotal,
                 paymentType: paymentTypeSelect.value,
                 customerId: selectedCustomerId,
@@ -594,12 +686,23 @@
                         }
 
                         if (currentTotalUnits < unitsToDeduct) {
-                            throw new Error(`الكمية غير كافية للمنتج: ${item.name} (${item.unit} - مطلوب ${item.quantity}). المتوفر ${Math.floor(currentTotalUnits / (item.unit === 'علبة' ? unitsPerBox * unitsPerStrip : (item.unit === 'شريط' ? unitsPerStrip : 1)))} ${item.unit} من هذا المنتج في المخزون.`);
+                            throw new Error(`الكمية غير كافية للمنتج: ${item.name} (${item.unit} - مطلوب ${item.quantity}). المتوفر ${Math.floor(currentTotalUnits / (item.unit === 'علبة' ? (unitsPerBox * unitsPerStrip) : (item.unit === 'شريط' ? unitsPerStrip : 1)))} ${item.unit} من هذا المنتج في المخزون.`);
                         }
                         
+                        // Check for expired product before deducting stock if not already handled by warning
+                        if (productDataInDb.expiryDate) {
+                            const expiry = new Date(productDataInDb.expiryDate);
+                            expiry.setHours(0,0,0,0);
+                            const today = new Date();
+                            today.setHours(0,0,0,0);
+                            if (expiry < today) {
+                                showToast(`تم بيع منتج منتهي الصلاحية: ${productDataInDb.name}.`, 'warning');
+                                // Optionally throw error here to prevent sale if strictly enforced
+                            }
+                        }
+
                         const newTotalUnits = currentTotalUnits - unitsToDeduct;
                         
-                        // Recalculate boxes and strips from new total units
                         const newStockBoxes = Math.floor(newTotalUnits / (unitsPerBox * unitsPerStrip));
                         const remainderAfterBoxes = newTotalUnits % (unitsPerBox * unitsPerStrip);
                         const newStockStrips = Math.floor(remainderAfterBoxes / unitsPerStrip);
@@ -613,7 +716,7 @@
 
                     // 2. Update customer debt if sale is on credit
                     if (saleData.paymentType === 'credit') {
-                        if (saleData.customerId && db.collection('customers').doc(saleData.customerId)) { // Existing customer and reference is valid
+                        if (saleData.customerId) { // Existing customer
                             const customerRef = db.collection('customers').doc(saleData.customerId);
                             transaction.update(customerRef, { currentDebt: firebase.firestore.FieldValue.increment(grandTotal) });
                         } else if (saleData.customerName) { // New (temporary) customer for debt
@@ -642,9 +745,13 @@
                 renderInvoice();
                 searchInput.value = '';
                 searchResults.innerHTML = '<p class="no-data-row">ابحث عن منتج لإضافته للفاتورة.</p>';
-                tempCustomerNameInput.value = '';
-                tempCustomerNameInput.style.display = 'none'; // Hide temp customer input
-                customerSelect.value = ''; // Reset customer select
+                customerSearchInput.value = ''; // Clear customer search
+                selectedCustomerIdInput.value = '';
+                selectedCustomerNameEl.value = 'عميل نقدي';
+                clearCustomerBtn.style.display = 'none';
+                tempCustomerNameManualInput.value = '';
+                tempCustomerNameManualInput.style.display = 'none'; // Hide manual input
+                paymentTypeSelect.value = 'cash'; // Reset payment type
             } catch (error) {
                 console.error("Sale failed: ", error);
                 showToast(`فشل إتمام البيع: ${error.message}`, 'error');
@@ -657,16 +764,19 @@
                 return;
             }
 
+            // Populate print template
             const printContent = document.getElementById('invoicePrintTemplate').cloneNode(true);
-            printContent.style.display = 'block'; // Make it visible for printing
+            
+            printContent.querySelector('#printPharmacyContact').textContent = pharmacySettings.contactNumber || 'N/A';
+            printContent.querySelector('#printInvoiceDate').textContent = new Date().toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+            printContent.querySelector('#printInvoiceNumber').textContent = lastSaleData.id;
+            printContent.querySelector('#printCustomerName').textContent = lastSaleData.customerName;
+            printContent.querySelector('#printPaymentType').textContent = lastSaleData.paymentType === 'cash' ? 'نقدي' : 'آجل';
+            printContent.querySelector('#printSubTotal').textContent = lastSaleData.subTotal.toFixed(2);
+            printContent.querySelector('#printDiscountAmount').textContent = (lastSaleData.discount || 0).toFixed(2);
+            printContent.querySelector('#printGrandTotal').textContent = lastSaleData.grandTotal.toFixed(2);
 
-            printContent.querySelector('#invoiceDate').textContent = new Date().toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
-            printContent.querySelector('#invoiceNumber').textContent = lastSaleData.id;
-            printContent.querySelector('#invoiceCustomerName').textContent = lastSaleData.customerName;
-            printContent.querySelector('#invoicePaymentType').textContent = lastSaleData.paymentType === 'cash' ? 'نقدي' : 'آجل';
-            printContent.querySelector('#invoiceGrandTotal').textContent = lastSaleData.grandTotal.toFixed(2);
-
-            const printItemsBody = printContent.querySelector('#invoicePrintItemsBody');
+            const printItemsBody = printContent.querySelector('#printInvoiceItemsBody');
             printItemsBody.innerHTML = '';
             lastSaleData.items.forEach(item => {
                 const row = printItemsBody.insertRow();
@@ -674,29 +784,34 @@
                 const itemQuantity = typeof item.quantity === 'number' ? item.quantity : 0;
 
                 row.innerHTML = `
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.name}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.unit}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.quantity}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${itemPrice.toFixed(2)}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${(itemPrice * itemQuantity).toFixed(2)}</td>
+                    <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${item.quantity}</td>
+                    <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${itemPrice.toFixed(2)}</td>
+                    <td style="border: 1px solid #ddd; padding: 4px; text-align: right;">${(itemPrice * itemQuantity).toFixed(2)}</td>
                 `;
             });
 
+            // Open a new window for printing
             const printWindow = window.open('', '_blank');
             printWindow.document.write('<html><head><title>الفاتورة</title>');
+            // Embed styles directly for print consistency
             printWindow.document.write('<style>');
             printWindow.document.write(`
-                body { font-family: 'Cairo', sans-serif; margin: 0; padding: 0; direction: rtl; text-align: right; font-size: 12px; }
-                .invoice-container { width: 80mm; margin: 0 auto; padding: 10px; }
-                h2 { text-align: center; margin-bottom: 10px; }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-                th, td { border: 1px solid #ddd; padding: 6px; text-align: right; }
+                body { font-family: 'Cairo', sans-serif; margin: 0; padding: 0; direction: rtl; text-align: right; font-size: 10px; }
+                .invoice-container { width: 78mm; margin: 0 auto; padding: 5mm; }
+                h3 { margin: 0; font-size: 14px; text-align: center; }
+                p { margin: 2px 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+                th, td { border: 1px solid #ddd; padding: 4px; text-align: right; }
+                thead th { background-color: #f2f2f2; }
                 .summary-line { display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; }
+                .text-center { text-align: center; }
             `);
             printWindow.document.write('</style>');
             printWindow.document.write('</head><body>');
             printWindow.document.write('<div class="invoice-container">');
-            printWindow.document.write(printContent.innerHTML);
+            printWindow.document.write(printContent.innerHTML); // Inject the populated template
             printWindow.document.write('</div></body></html>');
             printWindow.document.close();
             printWindow.print();
