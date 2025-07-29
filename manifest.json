@@ -1,0 +1,21 @@
+{
+    "name": "نظام إدارة الصيدلية",
+    "short_name": "نظام الصيدلية",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2c3e50",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "https://www.gstatic.com/mobilesdk/160503_mobilesdk/logo/2x/firebase_28.png",
+            "type": "image/png",
+            "sizes": "56x56"
+        },
+        {
+            "src": "https://www.gstatic.com/mobilesdk/160503_mobilesdk/logo/2x/firebase_64.png",
+            "type": "image/png",
+            "sizes": "64x64"
+        }
+    ]
+}
