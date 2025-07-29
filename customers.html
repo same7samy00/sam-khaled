@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body>
     <div class="container">
@@ -19,6 +20,7 @@
                     <li><a href="pos.html"><i class="fas fa-cash-register"></i> نقطة البيع</a></li>
                     <li><a href="sales_history.html"><i class="fas fa-history"></i> سجل المبيعات</a></li>
                     <li class="active"><a href="customers.html"><i class="fas fa-users"></i> إدارة العملاء</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a></li>
                     <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
                 </ul>
             </nav>
@@ -76,9 +78,18 @@
         </div>
     </div>
 
+    <nav class="mobile-nav-bar">
+        <a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
+        <a href="inventory.html"><i class="fas fa-box-open"></i> المنتجات</a>
+        <a href="pos.html"><i class="fas fa-cash-register"></i> البيع</a>
+        <a href="sales_history.html"><i class="fas fa-history"></i> المبيعات</a>
+        <a href="customers.html" class="active"><i class="fas fa-users"></i> العملاء</a>
+    </nav>
+
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -87,9 +98,30 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
+            // Function to show Toastify notifications
+            function showToast(message, type = 'info') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    newWindow: true,
+                    close: true,
+                    gravity: "top", // `top` or `bottom`
+                    position: "center", // `left`, `center` or `right`
+                    stopOnFocus: true, // Prevents dismissing on hover
+                    className: `on-${type}`, // Custom class for styling
+                    onClick: function(){} // Callback after click
+                }).showToast();
+            }
+
             // Mobile menu toggle logic
             const menuToggle = document.getElementById('menuToggle');
             const sidebar = document.querySelector('.sidebar');
+            const mobileNavBar = document.querySelector('.mobile-nav-bar');
+
+            if (mobileNavBar) {
+                document.body.classList.add('has-mobile-nav');
+            }
+
             if (menuToggle) {
                 menuToggle.addEventListener('click', () => {
                     sidebar.classList.toggle('open');
@@ -133,11 +165,16 @@
                 try {
                     if (editingCustomerId) {
                         await db.collection('customers').doc(editingCustomerId).update(customerData);
+                        showToast('تم تحديث العميل بنجاح!', 'success');
                     } else {
                         await db.collection('customers').add({ ...customerData, currentDebt: 0 });
+                        showToast('تم إضافة العميل بنجاح!', 'success');
                     }
                     closeCustomerModal();
-                } catch (error) { console.error("Error saving customer:", error); alert("خطأ في حفظ العميل") }
+                } catch (error) { 
+                    console.error("Error saving customer:", error); 
+                    showToast("خطأ في حفظ العميل: " + error.message, 'error');
+                }
             });
             
             // --- Pay Debt Modal Logic ---
@@ -152,74 +189,4 @@
                 payDebtModal.style.display = 'flex';
             };
             const closePayDebtModal = () => payDebtModal.style.display = 'none';
-            payDebtModal.querySelector('.close-button').addEventListener('click', closePayDebtModal);
-
-            payDebtForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const amount = parseFloat(payDebtForm.debtAmountToPay.value);
-                if (isNaN(amount) || amount <= 0) return alert("الرجاء إدخال مبلغ صحيح.");
-
-                try {
-                    const customerRef = db.collection('customers').doc(payingDebtForCustomerId);
-                    await db.runTransaction(async (transaction) => {
-                         const customerDoc = await transaction.get(customerRef);
-                         if(!customerDoc.exists) throw new Error("العميل غير موجود!");
-                         const newDebt = (customerDoc.data().currentDebt || 0) - amount;
-                         transaction.update(customerRef, { currentDebt: newDebt });
-                    });
-                    alert("تم تسجيل السداد بنجاح.");
-                    closePayDebtModal();
-                } catch (error) { console.error("Error paying debt:", error); alert(`فشل: ${error.message}`); }
-            });
-
-            // --- Table Rendering and Events ---
-            const customerTableBody = document.getElementById('customerTableBody');
-            db.collection('customers').orderBy('name').onSnapshot(snapshot => {
-                customerTableBody.innerHTML = '';
-                if(snapshot.empty) {
-                    customerTableBody.innerHTML = '<tr><td colspan="4" class="no-data-row">لا يوجد عملاء.</td></tr>';
-                    return;
-                }
-                snapshot.forEach(doc => {
-                    const customer = doc.data();
-                    const row = customerTableBody.insertRow();
-                    row.innerHTML = `
-                        <td>${customer.name}</td>
-                        <td>${customer.phone || 'N/A'}</td>
-                        <td>${(customer.currentDebt || 0).toFixed(2)}</td>
-                        <td class="actions-cell">
-                            <button class="btn btn-secondary pay-debt-btn" data-id="${doc.id}" data-name="${customer.name}"><i class="fas fa-money-bill-wave"></i> سداد</button>
-                            <button class="btn btn-primary edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
-                            <button class="btn btn-danger delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
-                });
-            });
-
-            customerTableBody.addEventListener('click', async (e) => {
-                const button = e.target.closest('button');
-                if(!button) return;
-                const id = button.dataset.id;
-                
-                if(button.classList.contains('edit-btn')) {
-                    const docSnap = await db.collection('customers').doc(id).get();
-                    if(docSnap.exists) {
-                       openCustomerModal(id, docSnap.data());
-                    }
-                } else if (button.classList.contains('delete-btn')) {
-                    if(confirm('هل أنت متأكد من الحذف؟ سيتم حذف العميل وكل ديونه.')) {
-                        await db.collection('customers').doc(id).delete();
-                    }
-                } else if (button.classList.contains('pay-debt-btn')) {
-                    const docSnap = await db.collection('customers').doc(id).get();
-                    if(docSnap.exists && (docSnap.data().currentDebt || 0) > 0) {
-                        openPayDebtModal(id, button.dataset.name);
-                    } else {
-                        alert("لا يوجد دين لهذا العميل لسداده.");
-                    }
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+            payDebtModal.querySelector('.close-button').addEventListener('click', closePayDebt

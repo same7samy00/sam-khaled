@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body>
     <div class="container">
@@ -19,7 +20,7 @@
                     <li><a href="pos.html"><i class="fas fa-cash-register"></i> نقطة البيع</a></li>
                     <li><a href="sales_history.html"><i class="fas fa-history"></i> سجل المبيعات</a></li>
                     <li><a href="customers.html"><i class="fas fa-users"></i> إدارة العملاء</a></li>
-                    <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a></li> <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
                 </ul>
             </nav>
         </aside>
@@ -71,9 +72,19 @@
         </main>
     </div>
 
+    <nav class="mobile-nav-bar">
+        <a href="index.html" class="active"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
+        <a href="inventory.html"><i class="fas fa-box-open"></i> المنتجات</a>
+        <a href="pos.html"><i class="fas fa-cash-register"></i> البيع</a>
+        <a href="sales_history.html"><i class="fas fa-history"></i> المبيعات</a>
+        <a href="customers.html"><i class="fas fa-users"></i> العملاء</a>
+    </nav>
+
+
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -82,9 +93,31 @@
             const auth = firebase.auth();
             const db = firebase.firestore();
 
+            // Function to show Toastify notifications
+            function showToast(message, type = 'info') {
+                Toastify({
+                    text: message,
+                    duration: 3000,
+                    newWindow: true,
+                    close: true,
+                    gravity: "top", // `top` or `bottom`
+                    position: "center", // `left`, `center` or `right`
+                    stopOnFocus: true, // Prevents dismissing on hover
+                    className: `on-${type}`, // Custom class for styling
+                    onClick: function(){} // Callback after click
+                }).showToast();
+            }
+
             // Mobile menu toggle logic
             const menuToggle = document.getElementById('menuToggle');
             const sidebar = document.querySelector('.sidebar');
+            const mobileNavBar = document.querySelector('.mobile-nav-bar');
+
+            // Add class to body if mobile nav is present to adjust padding
+            if (mobileNavBar) {
+                document.body.classList.add('has-mobile-nav');
+            }
+
             if (menuToggle) {
                 menuToggle.addEventListener('click', () => {
                     sidebar.classList.toggle('open');
@@ -113,7 +146,7 @@
                 const todayInvoicesEl = document.getElementById('todayInvoices');
                 const lowStockCountEl = document.getElementById('lowStockCount');
                 const expiringCountEl = document.getElementById('expiringCount');
-                const expiredCountEl = document.getElementById('expiredCount'); // New element
+                const expiredCountEl = document.getElementById('expiredCount');
 
                 // Today's Sales
                 const startOfDay = new Date();
@@ -138,7 +171,7 @@
                         const product = doc.data();
                         
                         // Check low stock
-                        if (product.stock_boxes <= product.reorderLevel) {
+                        if (product.stock_boxes !== undefined && product.reorderLevel !== undefined && product.stock_boxes <= product.reorderLevel) {
                             lowStock++;
                         }
 
@@ -160,6 +193,17 @@
                     if(lowStockCountEl) lowStockCountEl.textContent = lowStock;
                     if(expiringCountEl) expiringCountEl.textContent = expiringSoon;
                     if(expiredCountEl) expiredCountEl.textContent = expired; // Update new element
+
+                    // Show notifications for low stock/expiring products
+                    if (lowStock > 0) {
+                        showToast(`يوجد ${lowStock} منتج منخفض المخزون!`, 'error');
+                    }
+                    if (expiringSoon > 0) {
+                        showToast(`يوجد ${expiringSoon} منتج يقترب من انتهاء الصلاحية!`, 'info');
+                    }
+                    if (expired > 0) {
+                        showToast(`يوجد ${expired} منتج منتهي الصلاحية ويجب إزالته!`, 'error');
+                    }
                 });
             }
         });

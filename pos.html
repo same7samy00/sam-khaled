@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
 <body>
     <div class="container">
@@ -21,6 +20,7 @@
                     <li class="active"><a href="pos.html"><i class="fas fa-cash-register"></i> نقطة البيع</a></li>
                     <li><a href="sales_history.html"><i class="fas fa-history"></i> سجل المبيعات</a></li>
                     <li><a href="customers.html"><i class="fas fa-users"></i> إدارة العملاء</a></li>
+                    <li><a href="settings.html"><i class="fas fa-cog"></i> الإعدادات</a></li>
                     <li><a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</a></li>
                 </ul>
             </nav>
@@ -100,38 +100,49 @@
             <span class="close-button">&times;</span>
             <h3>مسح الباركود</h3>
             <div class="scanner-area"><video id="global-qr-video"></video></div>
+            <button class="btn btn-secondary" id="closeScannerModalBtn" style="width: 100%; margin-top: 15px;">إغلاق الماسح</button>
         </div>
     </div>
 
-    <div id="invoicePrintTemplate" style="display: none; padding: 20px; font-family: 'Cairo', sans-serif; font-size: 12px; direction: rtl; text-align: right;">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="margin: 0;">صيدلية الأمل</h2>
-            <p style="margin: 5px 0;">رقم التواصل: 01xxxxxxxxx</p>
-            <p style="margin: 5px 0;">تاريخ الفاتورة: <span id="invoiceDate"></span></p>
-            <p style="margin: 5px 0;">رقم الفاتورة: <span id="invoiceNumber"></span></p>
-        </div>
-        <div style="margin-bottom: 20px;">
-            <p>العميل: <span id="invoiceCustomerName"></span></p>
-            <p>نوع الدفع: <span id="invoicePaymentType"></span></p>
-        </div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-            <thead>
-                <tr style="background-color: #f2f2f2;">
-                    <th style="border: 1px solid #ddd; padding: 8px;">المنتج</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">الوحدة</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">الكمية</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">السعر</th>
-                    <th style="border: 1px solid #ddd; padding: 8px;">الإجمالي</th>
-                </tr>
-            </thead>
-            <tbody id="invoicePrintItemsBody">
-                </tbody>
-        </table>
-        <div style="text-align: left; border-top: 1px dashed #ccc; padding-top: 10px;">
-            <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">الإجمالي الكلي: <span id="invoiceGrandTotal">0.00</span></p>
-        </div>
-        <div style="text-align: center; margin-top: 30px;">
-            <p>شكراً لزيارتكم!</p>
+    <nav class="mobile-nav-bar">
+        <a href="index.html"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a>
+        <a href="inventory.html"><i class="fas fa-box-open"></i> المنتجات</a>
+        <a href="pos.html" class="active"><i class="fas fa-cash-register"></i> البيع</a>
+        <a href="sales_history.html"><i class="fas fa-history"></i> المبيعات</a>
+        <a href="customers.html"><i class="fas fa-users"></i> العملاء</a>
+    </nav>
+
+    <div id="invoicePrintTemplate" style="display: none;">
+        <div style="padding: 20px; font-family: 'Cairo', sans-serif; font-size: 12px; direction: rtl; text-align: right; width: 80mm; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 15px;">
+                <h2 style="margin: 0;">صيدلية الأمل</h2>
+                <p style="margin: 5px 0;">رقم التواصل: 01xxxxxxxxx</p>
+                <p style="margin: 5px 0;">تاريخ الفاتورة: <span id="invoiceDate"></span></p>
+                <p style="margin: 5px 0;">رقم الفاتورة: <span id="invoiceNumber"></span></p>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <p>العميل: <span id="invoiceCustomerName"></span></p>
+                <p>نوع الدفع: <span id="invoicePaymentType"></span></p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                <thead>
+                    <tr style="background-color: #f2f2f2;">
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">المنتج</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">وحدة</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">كمية</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">سعر</th>
+                        <th style="border: 1px solid #ddd; padding: 6px; text-align: right;">إجمالي</th>
+                    </tr>
+                </thead>
+                <tbody id="invoicePrintItemsBody">
+                    </tbody>
+            </table>
+            <div style="text-align: left; border-top: 1px dashed #ccc; padding-top: 8px;">
+                <p style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px;">الإجمالي الكلي: <span id="invoiceGrandTotal">0.00</span></p>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <p>شكراً لزيارتكم!</p>
+            </div>
         </div>
     </div>
 
@@ -140,6 +151,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -149,9 +161,30 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // Function to show Toastify notifications
+        function showToast(message, type = 'info') {
+            Toastify({
+                text: message,
+                duration: 3000,
+                newWindow: true,
+                close: true,
+                gravity: "top", // `top` or `bottom`
+                position: "center", // `left`, `center` or `right`
+                stopOnFocus: true, // Prevents dismissing on hover
+                className: `on-${type}`, // Custom class for styling
+                onClick: function(){} // Callback after click
+            }).showToast();
+        }
+
         // Mobile menu toggle logic
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.querySelector('.sidebar');
+        const mobileNavBar = document.querySelector('.mobile-nav-bar');
+
+        if (mobileNavBar) {
+            document.body.classList.add('has-mobile-nav');
+        }
+
         if (menuToggle) {
             menuToggle.addEventListener('click', () => {
                 sidebar.classList.toggle('open');
@@ -174,27 +207,52 @@
         // --- Scanner Logic ---
         const scannerModal = document.getElementById('globalScannerModal');
         const videoEl = document.getElementById('global-qr-video');
+        const closeScannerModalBtn = document.getElementById('closeScannerModalBtn');
         let scanner = null;
         let targetInput = null;
 
         function openScanner(targetInputId) {
             targetInput = document.getElementById(targetInputId);
             scannerModal.style.display = 'flex';
-            scanner = new QrScanner(videoEl, result => {
-                if (targetInput) {
-                    targetInput.value = result.data;
-                    targetInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger input event for search
-                }
-                closeScanner();
-            }, { highlightScanRegion: true, highlightCodeOutline: true });
-            scanner.start().catch(err => { alert("فشل تشغيل الكاميرا."); closeScanner(); });
+            // Request camera permission when modal is opened
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    videoEl.srcObject = stream;
+                    scanner = new QrScanner(videoEl, result => {
+                        if (targetInput) {
+                            targetInput.value = result.data;
+                            targetInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger input event for search
+                        }
+                        showToast('تم مسح الباركود بنجاح!', 'success');
+                        closeScanner();
+                    }, { highlightScanRegion: true, highlightCodeOutline: true });
+                    scanner.start();
+                })
+                .catch(err => {
+                    showToast("فشل تشغيل الكاميرا. يرجى منح الأذونات اللازمة للموقع.", 'error');
+                    console.error(err);
+                    closeScanner();
+                });
         };
+
         function closeScanner() {
-            if (scanner) { scanner.stop(); scanner.destroy(); scanner = null; }
-            scannerModal.style.display = 'none';
+            if (scanner) {
+                scanner.stop();
+                scanner.destroy();
+                scanner = null;
+            }
+            // Stop camera stream
+            if (videoEl.srcObject) {
+                videoEl.srcObject.getTracks().forEach(track => track.stop());
+                videoEl.srcObject = null;
+            }
+            if(scannerModal) scannerModal.style.display = 'none';
         };
+
         document.querySelectorAll('.open-scanner-btn').forEach(btn => btn.addEventListener('click', e => openScanner(e.currentTarget.dataset.targetInput)));
         scannerModal.querySelector('.close-button').addEventListener('click', closeScanner);
+        if(closeScannerModalBtn) closeScannerModalBtn.addEventListener('click', closeScanner);
+
 
         // --- POS Logic ---
         const searchInput = document.getElementById('posProductSearch');
@@ -241,12 +299,19 @@
             invoiceItemsBody.innerHTML = '';
             invoiceItems.forEach((item, index) => {
                 const row = invoiceItemsBody.insertRow();
-                // Determine available units based on product data
+                
+                // Ensure item.price is a valid number before toFixed
+                const itemPrice = typeof item.price === 'number' ? item.price : 0;
+                const itemQuantity = typeof item.quantity === 'number' ? item.quantity : 0;
+                const itemTotal = itemPrice * itemQuantity;
+
                 let unitOptions = `<option value="box" ${item.unit === 'علبة' ? 'selected' : ''}>علبة</option>`;
-                if (item.originalProduct.unitsPerBox > 0) {
+                // Check if strip price is available and unitsPerBox is valid
+                if (item.originalProduct.salePrice_strip > 0 && item.originalProduct.unitsPerBox > 0) {
                     unitOptions += `<option value="strip" ${item.unit === 'شريط' ? 'selected' : ''}>شريط</option>`;
                 }
-                if (item.originalProduct.unitsPerStrip > 0) { // Check for 'حبة' unit
+                // Check if unit price is available and unitsPerStrip is valid
+                if (item.originalProduct.salePrice_unit > 0 && item.originalProduct.unitsPerStrip > 0) {
                      unitOptions += `<option value="unit" ${item.unit === 'حبة' ? 'selected' : ''}>حبة</option>`;
                 }
 
@@ -257,9 +322,9 @@
                             ${unitOptions}
                         </select>
                     </td>
-                    <td><input type="number" value="${item.quantity}" min="1" data-index="${index}"></td>
-                    <td>${item.price.toFixed(2)}</td>
-                    <td>${(item.price * item.quantity).toFixed(2)}</td>
+                    <td><input type="number" value="${itemQuantity}" min="1" data-index="${index}"></td>
+                    <td>${itemPrice.toFixed(2)}</td>
+                    <td>${itemTotal.toFixed(2)}</td>
                     <td><button class="btn btn-danger delete-item-btn" data-index="${index}"><i class="fas fa-trash"></i></button></td>
                 `;
             });
@@ -267,7 +332,11 @@
         };
 
         const calculateTotals = () => {
-            const total = invoiceItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const total = invoiceItems.reduce((sum, item) => {
+                const itemPrice = typeof item.price === 'number' ? item.price : 0;
+                const itemQuantity = typeof item.quantity === 'number' ? item.quantity : 0;
+                return sum + (itemPrice * itemQuantity);
+            }, 0);
             subTotalEl.textContent = total.toFixed(2);
             grandTotalEl.textContent = total.toFixed(2);
         };
@@ -275,21 +344,27 @@
         invoiceItemsBody.addEventListener('change', (e) => {
             const index = e.target.dataset.index;
             const item = invoiceItems[index];
+            if (!item) return; // Guard against undefined item
+
             if (e.target.classList.contains('unit-select')) {
                 const selectedUnit = e.target.value;
                 item.unit = selectedUnit === 'box' ? 'علبة' : (selectedUnit === 'strip' ? 'شريط' : 'حبة');
-                // Update price based on selected unit
+                
+                // Update price based on selected unit, ensure prices exist before assigning
                 if (selectedUnit === 'box') {
-                    item.price = item.originalProduct.salePrice_box;
+                    item.price = item.originalProduct.salePrice_box || 0;
                 } else if (selectedUnit === 'strip') {
-                    item.price = item.originalProduct.salePrice_strip;
-                } else if (selectedUnit === 'unit') { // New unit type
-                    item.price = item.originalProduct.salePrice_unit;
+                    item.price = item.originalProduct.salePrice_strip || 0;
+                } else if (selectedUnit === 'unit') {
+                    item.price = item.originalProduct.salePrice_unit || 0;
                 }
+                // Reset quantity to 1 when changing unit, as stock logic is based on initial add
+                item.quantity = 1; 
             } else if (e.target.tagName === 'INPUT') {
                 const newQuantity = parseInt(e.target.value);
-                if (newQuantity < 1 || isNaN(newQuantity)) {
+                if (isNaN(newQuantity) || newQuantity < 1) {
                     e.target.value = item.quantity; // Revert to old quantity if invalid
+                    showToast('الكمية يجب أن تكون رقماً صحيحاً وأكبر من 0.', 'error');
                     return;
                 }
                 item.quantity = newQuantity;
@@ -318,13 +393,23 @@
                 byBoxBarcode.forEach(doc => productsFound.push({ doc, unit: 'علبة' }));
 
                 const byStripBarcode = await db.collection('products').where('barcode_strip', '==', term).get();
-                byStripBarcode.forEach(doc => productsFound.push({ doc, unit: 'شريط' }));
+                byStripBarcode.forEach(doc => {
+                    const product = doc.data();
+                    if (product.salePrice_strip > 0 && product.unitsPerBox > 0) { // Only add if strip price is set and unitsPerBox is defined
+                        productsFound.push({ doc, unit: 'شريط' });
+                    }
+                });
 
-                const byUnitBarcode = await db.collection('products').where('barcode_unit', '==', term).get(); // Search by unit barcode
-                byUnitBarcode.forEach(doc => productsFound.push({ doc, unit: 'حبة' }));
+                const byUnitBarcode = await db.collection('products').where('barcode_unit', '==', term).get();
+                byUnitBarcode.forEach(doc => {
+                    const product = doc.data();
+                    if (product.salePrice_unit > 0 && product.unitsPerStrip > 0) { // Only add if unit price is set and unitsPerStrip is defined
+                        productsFound.push({ doc, unit: 'حبة' });
+                    }
+                });
 
                 // Search by Name (case-insensitive, partial match)
-                if (productsFound.length === 0) { // Only search by name if no barcode match
+                if (productsFound.length === 0 || term.length > 5) { // Prioritize barcode, then name search if no barcode or longer term
                     const nameSearchSnapshot = await db.collection('products')
                                                      .orderBy('name')
                                                      .startAt(term)
@@ -337,7 +422,7 @@
                         if (product.unitsPerBox > 0 && product.salePrice_strip > 0) {
                             productsFound.push({ doc, unit: 'شريط' });
                         }
-                        if (product.unitsPerStrip > 0 && product.salePrice_unit > 0) { // Check for 'حبة' unit
+                        if (product.unitsPerStrip > 0 && product.salePrice_unit > 0) {
                             productsFound.push({ doc, unit: 'حبة' });
                         }
                     });
@@ -349,17 +434,31 @@
                 }
 
                 // Display unique products (can have multiple units for the same product)
+                searchResults.innerHTML = ''; // Clear previous results
+                const displayedProducts = new Set(); // To avoid duplicate product-unit combinations
+
                 productsFound.forEach(({ doc, unit }) => {
                     const product = doc.data();
+                    const productUnitKey = `${doc.id}-${unit}`;
+                    if (displayedProducts.has(productUnitKey)) {
+                        return; // Skip if already added
+                    }
+                    displayedProducts.add(productUnitKey);
+
+                    let priceToDisplay;
+                    if (unit === 'علبة') priceToDisplay = product.salePrice_box;
+                    else if (unit === 'شريط') priceToDisplay = product.salePrice_strip;
+                    else if (unit === 'حبة') priceToDisplay = product.salePrice_unit;
+                    
+                    if (priceToDisplay === undefined || priceToDisplay === null) {
+                        priceToDisplay = 0; // Default to 0 if price is undefined/null
+                    }
+
                     const resultDiv = document.createElement('div');
                     resultDiv.className = 'add-item-btn';
                     resultDiv.dataset.id = doc.id;
                     resultDiv.dataset.unit = unit;
-                    resultDiv.innerHTML = `<span>${product.name} - ${unit} ( ${
-                        unit === 'علبة' ? product.salePrice_box.toFixed(2) : 
-                        (unit === 'شريط' ? product.salePrice_strip.toFixed(2) : 
-                        product.salePrice_unit.toFixed(2))
-                    } جنيه )</span>`;
+                    resultDiv.innerHTML = `<span>${product.name} - ${unit} ( ${priceToDisplay.toFixed(2)} جنيه )</span>`;
                     searchResults.appendChild(resultDiv);
                 });
 
@@ -370,24 +469,37 @@
             const itemDiv = e.target.closest('.add-item-btn');
             if(itemDiv){
                 const docSnap = await db.collection('products').doc(itemDiv.dataset.id).get();
+                if (!docSnap.exists) {
+                    showToast('المنتج لم يعد موجوداً في المخزون.', 'error');
+                    return;
+                }
                 const product = docSnap.data();
                 const unit = itemDiv.dataset.unit;
 
                 // Validate stock before adding to invoice
-                const currentStockBoxes = product.stock_boxes || 0;
-                const currentStockStrips = product.stock_strips || 0;
-                const currentStockUnits = product.stock_units || 0;
                 const unitsPerBox = product.unitsPerBox || 1;
                 const unitsPerStrip = product.unitsPerStrip || 1;
+                let currentTotalUnits = product.stock_units || 0;
                 
-                let availableQuantity;
-                if (unit === 'علبة') availableQuantity = currentStockBoxes;
-                else if (unit === 'شريط') availableQuantity = currentStockStrips;
-                else if (unit === 'حبة') availableQuantity = currentStockUnits;
+                let desiredUnitValue = 1; // Default to 1 for initial add
 
+                // Determine the equivalent total units for the desired unit
+                let unitFactor = 1; // How many 'units' (pills) are in the selected item unit
+                let itemPrice = 0;
 
-                if (availableQuantity < 1) {
-                    alert(`عذرًا، لا يوجد كمية كافية من ${product.name} بوحدة ${unit}.`);
+                if (unit === 'علبة') {
+                    unitFactor = unitsPerBox * unitsPerStrip;
+                    itemPrice = product.salePrice_box || 0;
+                } else if (unit === 'شريط') {
+                    unitFactor = unitsPerStrip;
+                    itemPrice = product.salePrice_strip || 0;
+                } else if (unit === 'حبة') {
+                    unitFactor = 1;
+                    itemPrice = product.salePrice_unit || 0;
+                }
+
+                if (currentTotalUnits < unitFactor) { // Check if even one piece of the selected unit is available
+                    showToast(`عذرًا، لا يوجد كمية كافية من ${product.name} بوحدة ${unit}.`, 'error');
                     return;
                 }
 
@@ -395,25 +507,21 @@
                     productId: docSnap.id,
                     name: product.name,
                     unit: unit,
-                    quantity: 1, // Default quantity to 1
-                    price: unit === 'علبة' ? product.salePrice_box : 
-                           (unit === 'شريط' ? product.salePrice_strip : product.salePrice_unit),
+                    quantity: 1, // Always add 1 initially
+                    price: itemPrice,
                     originalProduct: product // Store original product data for stock calculations
                 };
                 
-                const existingItem = invoiceItems.find(item => item.productId === newItem.productId && item.unit === newItem.unit);
-                if (existingItem) { 
-                    // Check if adding one more exceeds stock
-                    let totalDesiredQuantity;
-                    if (existingItem.unit === 'علبة') totalDesiredQuantity = existingItem.quantity + 1;
-                    else if (existingItem.unit === 'شريط') totalDesiredQuantity = existingItem.quantity + 1;
-                    else if (existingItem.unit === 'حبة') totalDesiredQuantity = existingItem.quantity + 1;
+                const existingItemIndex = invoiceItems.findIndex(item => item.productId === newItem.productId && item.unit === newItem.unit);
 
-                    if (totalDesiredQuantity > availableQuantity) {
-                         alert(`لا يوجد كمية إضافية كافية من ${product.name} بوحدة ${unit}.`);
-                         return;
+                if (existingItemIndex > -1) {
+                    const existingItem = invoiceItems[existingItemIndex];
+                    let totalDesiredUnitsForExisting = (existingItem.quantity + 1) * unitFactor; // Check if adding one more exceeds total units
+                    if (totalDesiredUnitsForExisting > currentTotalUnits) {
+                        showToast(`لا يوجد كمية إضافية كافية من ${product.name} بوحدة ${unit}. المتوفر ${Math.floor(currentTotalUnits / unitFactor)} ${unit}.`, 'info');
+                        return;
                     }
-                    existingItem.quantity++; 
+                    existingItem.quantity++;
                 } 
                 else { 
                     invoiceItems.push(newItem); 
@@ -423,14 +531,18 @@
         });
 
         completeSaleBtn.addEventListener('click', async () => {
-            if(invoiceItems.length === 0) return alert('الفاتورة فارغة!');
+            if(invoiceItems.length === 0) {
+                showToast('الفاتورة فارغة!', 'error');
+                return;
+            }
             
             let selectedCustomerId = customerSelect.value || null;
-            let customerNameForSale = customerSelect.options[customerSelect.selectedIndex].text;
+            let customerNameForSale = customerSelect.options[customerSelect.selectedIndex].textContent; // Use textContent for display
 
             if (paymentTypeSelect.value === 'credit') {
                 if (!selectedCustomerId && !tempCustomerNameInput.value.trim()) {
-                    return alert('يرجى اختيار عميل أو إدخال اسم العميل للبيع الآجل.');
+                    showToast('يرجى اختيار عميل مسجل أو إدخال اسم العميل للبيع الآجل.', 'error');
+                    return;
                 }
                 if (!selectedCustomerId && tempCustomerNameInput.value.trim()) {
                     customerNameForSale = tempCustomerNameInput.value.trim();
@@ -463,7 +575,7 @@
                     for (const item of invoiceItems) {
                         const productRef = db.collection('products').doc(item.productId);
                         const productDoc = await transaction.get(productRef);
-                        if (!productDoc.exists) throw new Error(`المنتج ${item.name} غير موجود!`);
+                        if (!productDoc.exists) throw new Error(`المنتج ${item.name} غير موجود في المخزون!`);
 
                         const productDataInDb = productDoc.data();
                         let currentTotalUnits = productDataInDb.stock_units || 0;
@@ -477,10 +589,12 @@
                             unitsToDeduct = item.quantity * unitsPerStrip;
                         } else if (item.unit === 'حبة') {
                             unitsToDeduct = item.quantity;
+                        } else {
+                            throw new Error(`وحدة غير صالحة للمنتج: ${item.name}`);
                         }
 
                         if (currentTotalUnits < unitsToDeduct) {
-                            throw new Error(`الكمية غير كافية للمنتج: ${item.name} (${item.unit} - مطلوب ${item.quantity}). المتوفر ${Math.floor(currentTotalUnits / (item.unit === 'علبة' ? unitsPerBox * unitsPerStrip : (item.unit === 'شريط' ? unitsPerStrip : 1)))} ${item.unit}.`);
+                            throw new Error(`الكمية غير كافية للمنتج: ${item.name} (${item.unit} - مطلوب ${item.quantity}). المتوفر ${Math.floor(currentTotalUnits / (item.unit === 'علبة' ? unitsPerBox * unitsPerStrip : (item.unit === 'شريط' ? unitsPerStrip : 1)))} ${item.unit} من هذا المنتج في المخزون.`);
                         }
                         
                         const newTotalUnits = currentTotalUnits - unitsToDeduct;
@@ -499,7 +613,7 @@
 
                     // 2. Update customer debt if sale is on credit
                     if (saleData.paymentType === 'credit') {
-                        if (saleData.customerId) { // Existing customer
+                        if (saleData.customerId && db.collection('customers').doc(saleData.customerId)) { // Existing customer and reference is valid
                             const customerRef = db.collection('customers').doc(saleData.customerId);
                             transaction.update(customerRef, { currentDebt: firebase.firestore.FieldValue.increment(grandTotal) });
                         } else if (saleData.customerName) { // New (temporary) customer for debt
@@ -522,7 +636,7 @@
                     lastSaleData = { ...saleData, id: saleRef.id };
                 });
 
-                alert('تم البيع بنجاح!');
+                showToast('تم البيع بنجاح!', 'success');
                 printInvoiceBtn.style.display = 'block'; // Show print button
                 invoiceItems = [];
                 renderInvoice();
@@ -533,70 +647,59 @@
                 customerSelect.value = ''; // Reset customer select
             } catch (error) {
                 console.error("Sale failed: ", error);
-                alert(`فشل إتمام البيع: ${error.message}`);
+                showToast(`فشل إتمام البيع: ${error.message}`, 'error');
             }
         });
 
         printInvoiceBtn.addEventListener('click', () => {
             if (!lastSaleData) {
-                alert('لا توجد فاتورة لطباعتها. يرجى إتمام عملية بيع أولاً.');
+                showToast('لا توجد فاتورة لطباعتها. يرجى إتمام عملية بيع أولاً.', 'info');
                 return;
             }
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                unit: 'mm',
-                format: 'a5', // Common size for receipts
-                orientation: 'portrait'
-            });
+            const printContent = document.getElementById('invoicePrintTemplate').cloneNode(true);
+            printContent.style.display = 'block'; // Make it visible for printing
 
-            const template = document.getElementById('invoicePrintTemplate');
-            document.getElementById('invoiceDate').textContent = new Date().toLocaleString('ar-EG');
-            document.getElementById('invoiceNumber').textContent = lastSaleData.id;
-            document.getElementById('invoiceCustomerName').textContent = lastSaleData.customerName;
-            document.getElementById('invoicePaymentType').textContent = lastSaleData.paymentType === 'cash' ? 'نقدي' : 'آجل';
-            document.getElementById('invoiceGrandTotal').textContent = lastSaleData.grandTotal.toFixed(2);
+            printContent.querySelector('#invoiceDate').textContent = new Date().toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' });
+            printContent.querySelector('#invoiceNumber').textContent = lastSaleData.id;
+            printContent.querySelector('#invoiceCustomerName').textContent = lastSaleData.customerName;
+            printContent.querySelector('#invoicePaymentType').textContent = lastSaleData.paymentType === 'cash' ? 'نقدي' : 'آجل';
+            printContent.querySelector('#invoiceGrandTotal').textContent = lastSaleData.grandTotal.toFixed(2);
 
-            const printItemsBody = document.getElementById('invoicePrintItemsBody');
+            const printItemsBody = printContent.querySelector('#invoicePrintItemsBody');
             printItemsBody.innerHTML = '';
             lastSaleData.items.forEach(item => {
                 const row = printItemsBody.insertRow();
+                const itemPrice = typeof item.price === 'number' ? item.price : 0;
+                const itemQuantity = typeof item.quantity === 'number' ? item.quantity : 0;
+
                 row.innerHTML = `
-                    <td style="border: 1px solid #ddd; padding: 8px;">${item.name}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${item.unit}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${item.quantity}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${item.price.toFixed(2)}</td>
-                    <td style="border: 1px solid #ddd; padding: 8px;">${(item.price * item.quantity).toFixed(2)}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.unit}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${item.quantity}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${itemPrice.toFixed(2)}</td>
+                    <td style="border: 1px solid #ddd; padding: 6px; text-align: right;">${(itemPrice * itemQuantity).toFixed(2)}</td>
                 `;
             });
 
-            // Using html2canvas to convert the template to an image, then add to PDF
-            html2canvas(template, { 
-                scale: 2, // Increase scale for better resolution
-                useCORS: true, // Needed if you have external resources (like fonts, though unlikely for this simple case)
-                logging: false // Disable logging
-            }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 148; // A5 width in mm
-                const pageHeight = 210; // A5 height in mm
-                const imgHeight = canvas.height * imgWidth / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    doc.addPage();
-                    doc.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-                }
-                doc.save(`invoice_${lastSaleData.id}.pdf`);
-            }).catch(err => {
-                console.error("Error generating PDF:", err);
-                alert("حدث خطأ أثناء إنشاء الفاتورة. الرجاء المحاولة مرة أخرى.");
-            });
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>الفاتورة</title>');
+            printWindow.document.write('<style>');
+            printWindow.document.write(`
+                body { font-family: 'Cairo', sans-serif; margin: 0; padding: 0; direction: rtl; text-align: right; font-size: 12px; }
+                .invoice-container { width: 80mm; margin: 0 auto; padding: 10px; }
+                h2 { text-align: center; margin-bottom: 10px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+                th, td { border: 1px solid #ddd; padding: 6px; text-align: right; }
+                .summary-line { display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; }
+            `);
+            printWindow.document.write('</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<div class="invoice-container">');
+            printWindow.document.write(printContent.innerHTML);
+            printWindow.document.write('</div></body></html>');
+            printWindow.document.close();
+            printWindow.print();
         });
     });
     </script>
