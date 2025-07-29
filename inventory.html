@@ -27,6 +27,7 @@
         <main class="main-content">
             <header class="main-header">
                 <h2>إدارة المنتجات</h2>
+                <button class="menu-toggle btn btn-secondary" id="menuToggle"><i class="fas fa-bars"></i></button>
                 <button class="btn btn-primary" id="addProductBtn"><i class="fas fa-plus"></i> إضافة منتج جديد</button>
             </header>
 
@@ -39,6 +40,8 @@
                             <th>كمية العلب</th>
                             <th>سعر بيع العلبة</th>
                             <th>سعر بيع الشريط</th>
+                            <th>سعر بيع الحبة</th>
+                            <th>تاريخ الإنتاج</th>
                             <th>تاريخ الصلاحية</th>
                             <th>الإجراءات</th>
                         </tr>
@@ -60,6 +63,7 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label for="supplier">المورد:</label><input type="text" id="supplier"></div>
+                    <div class="form-group"><label for="productionDate">تاريخ الإنتاج:</label><input type="date" id="productionDate" required></div>
                     <div class="form-group"><label for="expiryDate">تاريخ الصلاحية:</label><input type="date" id="expiryDate" required></div>
                 </div>
                  <hr style="margin: 15px 0; border-color: #eee;">
@@ -78,12 +82,23 @@
                             <button type="button" class="btn btn-secondary open-scanner-btn" data-target-input="barcode_strip"><i class="fas fa-barcode"></i></button>
                         </div>
                     </div>
+                     <div class="form-group">
+                        <label for="barcode_unit">باركود الحبة (اختياري):</label>
+                        <div class="input-with-btn">
+                            <input type="text" id="barcode_unit">
+                            <button type="button" class="btn btn-secondary open-scanner-btn" data-target-input="barcode_unit"><i class="fas fa-barcode"></i></button>
+                        </div>
+                    </div>
                 </div>
                  <hr style="margin: 15px 0; border-color: #eee;">
                 <div class="form-row">
                     <div class="form-group"><label for="salePrice_box">سعر بيع العلبة:</label><input type="number" id="salePrice_box" step="0.01" required></div>
                     <div class="form-group"><label for="salePrice_strip">سعر بيع الشريط:</label><input type="number" id="salePrice_strip" step="0.01" required></div>
+                    <div class="form-group"><label for="salePrice_unit">سعر بيع الحبة:</label><input type="number" id="salePrice_unit" step="0.01" required></div>
+                </div>
+                <div class="form-row">
                     <div class="form-group"><label for="unitsPerBox">عدد الشرائط بالعلبة:</label><input type="number" id="unitsPerBox" required></div>
+                    <div class="form-group"><label for="unitsPerStrip">عدد الحبات بالشريط:</label><input type="number" id="unitsPerStrip" required></div>
                 </div>
                  <hr style="margin: 15px 0; border-color: #eee;">
                 <div class="form-row">
@@ -119,6 +134,21 @@
             const app = firebase.initializeApp(firebaseConfig);
             const auth = firebase.auth();
             const db = firebase.firestore();
+
+            // Mobile menu toggle logic
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.sidebar');
+            if (menuToggle) {
+                menuToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('open');
+                });
+            }
+            document.addEventListener('click', (event) => {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('open') && 
+                    !sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+                    sidebar.classList.remove('open');
+                }
+            });
 
             auth.onAuthStateChanged(user => { if (!user) window.location.href = 'login.html'; });
             document.getElementById('logoutBtn').addEventListener('click', () => auth.signOut());
@@ -185,20 +215,43 @@
 
             productForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+
+                const productionDate = new Date(productForm.productionDate.value);
+                const expiryDate = new Date(productForm.expiryDate.value);
+                const today = new Date();
+                today.setHours(0,0,0,0); // Reset time for comparison
+
+                if (productionDate > expiryDate) {
+                    alert('تاريخ الإنتاج لا يمكن أن يكون بعد تاريخ الصلاحية.');
+                    return;
+                }
+                if (expiryDate < today) {
+                    alert('لا يمكن إضافة منتج منتهي الصلاحية.');
+                    return;
+                }
+
+
                 const stockBoxes = parseInt(productForm.stock_boxes.value);
                 const unitsPerBox = parseInt(productForm.unitsPerBox.value);
+                const unitsPerStrip = parseInt(productForm.unitsPerStrip.value);
+
                 const productData = {
                     name: productForm.name.value,
                     scientificName: productForm.scientificName.value,
                     supplier: productForm.supplier.value,
                     barcode_box: productForm.barcode_box.value,
                     barcode_strip: productForm.barcode_strip.value,
+                    barcode_unit: productForm.barcode_unit.value, // New field for unit barcode
                     salePrice_box: parseFloat(productForm.salePrice_box.value),
                     salePrice_strip: parseFloat(productForm.salePrice_strip.value),
+                    salePrice_unit: parseFloat(productForm.salePrice_unit.value), // New field for unit price
                     unitsPerBox: unitsPerBox,
+                    unitsPerStrip: unitsPerStrip, // New field for units per strip
                     stock_boxes: stockBoxes,
                     stock_strips: stockBoxes * unitsPerBox, // Calculated total strips
+                    stock_units: stockBoxes * unitsPerBox * unitsPerStrip, // Calculated total units/pills
                     reorderLevel: parseInt(productForm.reorderLevel.value),
+                    productionDate: productForm.productionDate.value, // Save production date
                     expiryDate: productForm.expiryDate.value,
                     notes: productForm.notes.value
                 };
@@ -215,25 +268,44 @@
             db.collection('products').orderBy('name').onSnapshot(snapshot => {
                 productTableBody.innerHTML = '';
                 if(snapshot.empty) {
-                    productTableBody.innerHTML = '<tr><td colspan="7" class="no-data-row">لا توجد منتجات. ابدأ بإضافة منتج جديد.</td></tr>';
+                    productTableBody.innerHTML = '<tr><td colspan="9" class="no-data-row">لا توجد منتجات. ابدأ بإضافة منتج جديد.</td></tr>'; // Updated colspan
                     return;
                 }
+                const today = new Date();
+                today.setHours(0,0,0,0); // Reset time for accurate date comparison
+
                 snapshot.forEach(doc => {
                     const p = doc.data();
                     const row = productTableBody.insertRow();
                     
                     const isLowStock = p.stock_boxes <= p.reorderLevel;
                     const expiry = new Date(p.expiryDate);
-                    const isExpiring = (expiry - new Date()) / (1000 * 60 * 60 * 24) < 30; // expiring in 30 days
-                    row.style.backgroundColor = isLowStock ? '#fee2e2' : (isExpiring ? '#fef3c7' : '');
+                    expiry.setHours(0,0,0,0);
+
+                    const daysUntilExpiry = (expiry - today) / (1000 * 60 * 60 * 24);
+                    const isExpiringSoon = daysUntilExpiry < 90 && daysUntilExpiry >= 0; // expiring in 90 days
+                    const isExpired = daysUntilExpiry < 0; // Already expired
+
+                    let rowClass = '';
+                    if (isExpired) {
+                        rowClass = 'expired-product'; // Red background
+                    } else if (isLowStock) {
+                        rowClass = 'low-stock-product'; // Light red background
+                    } else if (isExpiringSoon) {
+                        rowClass = 'expiring-soon-product'; // Yellow background
+                    }
+                    row.className = rowClass;
+
 
                     row.innerHTML = `
                         <td>${p.name}</td>
                         <td>${p.supplier || 'N/A'}</td>
                         <td>${p.stock_boxes}</td>
-                        <td>${p.salePrice_box.toFixed(2)}</td>
-                        <td>${p.salePrice_strip.toFixed(2)}</td>
-                        <td>${p.expiryDate}</td>
+                        <td>${p.salePrice_box ? p.salePrice_box.toFixed(2) : 'N/A'}</td>
+                        <td>${p.salePrice_strip ? p.salePrice_strip.toFixed(2) : 'N/A'}</td>
+                        <td>${p.salePrice_unit ? p.salePrice_unit.toFixed(2) : 'N/A'}</td>
+                        <td>${p.productionDate || 'N/A'}</td>
+                        <td>${p.expiryDate || 'N/A'}</td>
                         <td class="actions-cell">
                             <button class="btn btn-primary edit-btn" data-id="${doc.id}"><i class="fas fa-edit"></i></button>
                             <button class="btn btn-danger delete-btn" data-id="${doc.id}"><i class="fas fa-trash"></i></button>
